@@ -260,16 +260,48 @@ AFRAME.registerComponent('monolith-interaction', {
     let currentScaleIndex = 0;
 
     // Start / Initialize Experience
-    startBtn.addEventListener('click', () => {
+    startBtn.addEventListener('click', async () => {
+      startBtn.disabled = true;
+      startBtn.innerText = 'INITIALIZING SENSORS...';
+
+      // 1. iOS Safari DeviceOrientation permission (requires direct user gesture)
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        try {
+          await DeviceOrientationEvent.requestPermission();
+        } catch (e) {
+          console.warn('Device orientation permission:', e);
+        }
+      }
+
+      // 2. Direct Camera permission prompt within user gesture
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          const tempStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } }
+          });
+          // Stop probe stream so 8th Wall can bind to hardware camera exclusively
+          tempStream.getTracks().forEach(t => t.stop());
+        }
+      } catch (err) {
+        console.warn('Camera request notice:', err);
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          alert('Camera permission was denied or blocked. Please tap the padlock / "aA" icon in your browser address bar to allow Camera access, then reload.');
+        }
+      }
+
       startOverlay.classList.add('hidden');
+
       // Auto-start ambient alien audio
       audioSynth.toggle();
       soundBtn.classList.add('active');
 
-      // Check if 8th Wall XR is running
       if (statusText) {
-        statusText.innerText = 'CALIBRATING AR SLAM...';
+        statusText.innerText = 'CONNECTING CAMERA...';
       }
+
+      // Trigger 8th Wall to start camera and SLAM
+      scene.emit('runreality');
+      scene.emit('runxr');
     });
 
     // Sound toggle
@@ -334,7 +366,17 @@ AFRAME.registerComponent('monolith-interaction', {
 
     // 8th Wall Lifecycle Events
     scene.addEventListener('realityready', () => {
-      if (statusText) statusText.innerText = '8THWALL.ORG REALITY READY';
+      if (statusText) statusText.innerText = 'CAMERA & TRACKING ACTIVE';
+    });
+
+    scene.addEventListener('camerastatuschange', (e) => {
+      if (statusText && e.detail && e.detail.status) {
+        if (e.detail.status === 'hasStream' || e.detail.status === 'hasVideo') {
+          statusText.innerText = 'CAMERA STREAM ATTACHED';
+        } else if (e.detail.status === 'failed') {
+          statusText.innerText = 'CAMERA FAILED: ' + (e.detail.reason || 'CHECK PERMISSIONS');
+        }
+      }
     });
 
     scene.addEventListener('xrfatalerror', (e) => {

@@ -77,13 +77,13 @@
 
   <!-- 
     8th Wall A-Frame Scene
-    - xrconfig: Configures 8th Wall engine
+    - xrconfig="delayRun: true": Delays camera start until user taps "INITIALIZE AR SCAN"
     - xrweb: Starts camera stream and SLAM world tracking
     - xrextras-loading: Standard loading indicator
     - xrextras-runtime-error: Displays permissions/hardware errors
   -->
   <a-scene
-    xrconfig
+    xrconfig="delayRun: true"
     xrweb
     xrextras-loading
     xrextras-runtime-error
