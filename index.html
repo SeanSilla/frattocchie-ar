@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Alien Monolith AR | Centro Commerciale La Nave</title>
+  
+  <link rel="stylesheet" href="style.css">
+
+  <!-- 
+    8th Wall Open Source (8thwall.org)
+    Core SLAM Engine Binary (Free & Open Distribution - No AppKey required!)
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
+
+  <!-- A-Frame VR/AR Framework -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+  <!-- 8th Wall XRExtras (Open Source UI & helper utilities) -->
+  <script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js" crossorigin="anonymous"></script>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</head>
+<body>
+  <!-- Sci-Fi HUD Overlay -->
+  <div id="hud-container">
+    <div class="hud-header">
+      <div class="hud-target-badge">
+        <span class="pulse-dot"></span>
+        <span class="hud-text">TARGET: LA NAVE CC (FRATTOCCHIE)</span>
+      </div>
+      <div class="hud-status" id="xr-status">8THWALL.ORG ENGINE READY</div>
+    </div>
+
+    <!-- Reticle for placement feedback -->
+    <div id="placement-guide" class="guide-box">
+      <div class="crosshair"></div>
+      <p>Aim at ground in front of La Nave & tap to reposition</p>
+    </div>
+
+    <!-- Sci-fi Controls Footer -->
+    <div class="hud-controls">
+      <button id="btn-sound" class="hud-btn" title="Toggle Alien Audio Hum">
+        <span class="btn-icon">🔊</span> AUDIO HUM
+      </button>
+      <button id="btn-scale" class="hud-btn" title="Toggle Monolith Scale">
+        <span class="btn-icon">⚡</span> SCALE: GIANT
+      </button>
+      <button id="btn-recenter" class="hud-btn" title="Recenter in front of you">
+        <span class="btn-icon">🎯</span> RECENTER
+      </button>
+    </div>
+  </div>
+
+  <!-- Custom Start / Audio Trigger Screen -->
+  <div id="start-overlay" class="overlay">
+    <div class="overlay-card">
+      <div class="alien-glyph">▲ ◈ ▲</div>
+      <h1>ANOMALY DETECTED</h1>
+      <p class="location-tag">LOCATION: CENTRO COMMERCIALE LA NAVE</p>
+      <p class="description">
+        A mysterious extraterrestrial monolith has surfaced. Allow camera access and point your device towards the front plaza of La Nave.
+      </p>
+      <button id="start-btn" class="glow-button">INITIALIZE AR SCAN</button>
+      <div class="engine-badge">
+        <span>⚡ Powered by 8thwall.org Open-Source WebAR (No App Key needed)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 
+    8th Wall Open Source A-Frame Scene
+    - xrconfig: Configures 8th Wall engine parameters
+    - xrweb: Activates SLAM camera tracking and world coordinate system
+    - xrextras-runtime-error: Displays diagnostics if camera permissions fail
+  -->
+  <a-scene
+    xrconfig
+    xrweb
+    xrextras-runtime-error
+    renderer="colorManagement: true; physicallyCorrectLights: true; exposure: 1.2;"
+    monolith-interaction>
+
+    <a-assets>
+      <!-- Procedurally generated textures or shaders handled in app.js -->
+    </a-assets>
+
+    <!-- AR Camera Rig -->
+    <a-camera
+      id="camera"
+      position="0 1.6 0"
+      raycaster="objects: .clickable"
+      cursor="fuse: false; rayOrigin: mouse;">
+    </a-camera>
+
+    <!-- Ambient & Atmospheric Alien Lighting -->
+    <a-entity light="type: ambient; color: #334455; intensity: 0.8;"></a-entity>
+    
+    <!-- Directional Sun Light -->
+    <a-entity
+      id="sun-light"
+      light="type: directional; color: #ffffff; intensity: 1.8; castShadow: true;"
+      position="5 15 8">
+    </a-entity>
+
+    <!-- Ominous Cold Rim Light for Alien Sheen -->
+    <a-entity
+      light="type: directional; color: #00d9ff; intensity: 1.2;"
+      position="-8 10 -10">
+    </a-entity>
+
+    <!-- Shadow-receiving ground plane for realistic AR occlusion & shadows -->
+    <a-entity
+      id="ground"
+      geometry="primitive: plane; width: 100; height: 100;"
+      rotation="-90 0 0"
+      material="shader: shadow; opacity: 0.6;">
+    </a-entity>
+
+    <!-- 
+      Monolith Root Entity (positioned 15 meters in front of the viewer by default)
+      Proportions: 1 : 4 : 9 (Arthur C. Clarke / 2001: A Space Odyssey classic alien monolith ratio)
+      Giant AR Scale: 3 meters wide, 12 meters high, 0.75 meters deep
+    -->
+    <a-entity id="monolith-rig" position="0 0 -15">
+      <!-- Monolith Main Body -->
+      <a-entity
+        id="monolith-mesh"
+        alien-monolith="width: 3.0; height: 12.0; depth: 0.75;"
+        shadow="receive: true; cast: true;">
+      </a-entity>
+
+      <!-- Alien Ground Rune / Electromagnetic Glow Ring -->
+      <a-ring
+        id="energy-ring"
+        color="#00ffe1"
+        radius-inner="2.5"
+        radius-outer="2.8"
+        rotation="-90 0 0"
+        position="0 0.05 0"
+        material="opacity: 0.7; transparent: true; emissive: #00ffe1; emissiveIntensity: 2.0;"
+        animation="property: rotation; to: -90 360 0; dur: 20000; loop: true; easing: linear;">
+      </a-ring>
+
+      <!-- Second Concentric Counter-rotating Ring -->
+      <a-ring
+        color="#9d00ff"
+        radius-inner="3.2"
+        radius-outer="3.4"
+        rotation="-90 0 0"
+        position="0 0.04 0"
+        material="opacity: 0.5; transparent: true; emissive: #9d00ff; emissiveIntensity: 1.5;"
+        animation="property: rotation; to: -90 -360 0; dur: 30000; loop: true; easing: linear;">
+      </a-ring>
+
+      <!-- Ground Spot Light illuminating the Monolith upwards -->
+      <a-entity
+        light="type: spot; color: #00f0ff; intensity: 3.5; distance: 20; penumbra: 0.8; angle: 45;"
+        position="0 0.1 2"
+        rotation="-75 0 0">
+      </a-entity>
+    </a-entity>
+
+  </a-scene>
+</body>
+</html>

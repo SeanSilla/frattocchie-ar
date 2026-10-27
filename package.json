@@ -1,0 +1,21 @@
+{
+  "name": "alien-monolith-la-nave-ar",
+  "version": "1.0.0",
+  "description": "WebAR experience showcasing a giant alien dark metal monolith in front of Centro Commerciale La Nave (Frattocchie) using 8th Wall & A-Frame",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve -l 3000",
+    "dev:ssl": "npx local-ssl-proxy --source 3001 --target 3000"
+  },
+  "keywords": [
+    "webar",
+    "8thwall",
+    "aframe",
+    "threejs",
+    "augmented-reality",
+    "frattocchie",
+    "la-nave"
+  ],
+  "author": "",
+  "license": "MIT"
+}
