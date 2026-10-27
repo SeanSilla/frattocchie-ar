@@ -9,18 +9,23 @@
   <link rel="stylesheet" href="style.css">
 
   <!-- 
-    8th Wall Open Source (8thwall.org)
-    Core SLAM Engine Binary (Free & Open Distribution - No AppKey required!)
+    1. 8-Frame (8th Wall's specialized A-Frame build)
+    MUST be loaded FIRST so window.AFRAME is defined for 8th Wall components.
   -->
-  <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
+  <script src="//cdn.8thwall.com/web/aframe/8frame-1.5.0.min.js"></script>
 
-  <!-- A-Frame VR/AR Framework -->
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <!-- 
+    2. 8th Wall XRExtras (Loading screens, runtime error handling & camera coaching)
+  -->
+  <script src="//cdn.8thwall.com/web/xrextras/xrextras.js"></script>
 
-  <!-- 8th Wall XRExtras (Open Source UI & helper utilities) -->
-  <script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js" crossorigin="anonymous"></script>
+  <!-- 
+    3. 8th Wall Open Source SLAM Engine Binary (8thwall.org)
+    Loaded after 8-Frame so that window.AFRAME.registerComponent("xrweb") registers properly!
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" data-preload-chunks="slam"></script>
 
-  <!-- Application Logic -->
+  <!-- 4. Application Logic -->
   <script src="app.js"></script>
 </head>
 <body>
@@ -31,7 +36,7 @@
         <span class="pulse-dot"></span>
         <span class="hud-text">TARGET: LA NAVE CC (FRATTOCCHIE)</span>
       </div>
-      <div class="hud-status" id="xr-status">8THWALL.ORG ENGINE READY</div>
+      <div class="hud-status" id="xr-status">CALIBRATING CAMERA...</div>
     </div>
 
     <!-- Reticle for placement feedback -->
@@ -65,20 +70,22 @@
       </p>
       <button id="start-btn" class="glow-button">INITIALIZE AR SCAN</button>
       <div class="engine-badge">
-        <span>⚡ Powered by 8thwall.org Open-Source WebAR (No App Key needed)</span>
+        <span>⚡ Powered by 8thwall.org Open-Source WebAR</span>
       </div>
     </div>
   </div>
 
   <!-- 
-    8th Wall Open Source A-Frame Scene
-    - xrconfig: Configures 8th Wall engine parameters
-    - xrweb: Activates SLAM camera tracking and world coordinate system
-    - xrextras-runtime-error: Displays diagnostics if camera permissions fail
+    8th Wall A-Frame Scene
+    - xrconfig: Configures 8th Wall engine
+    - xrweb: Starts camera stream and SLAM world tracking
+    - xrextras-loading: Standard loading indicator
+    - xrextras-runtime-error: Displays permissions/hardware errors
   -->
   <a-scene
     xrconfig
     xrweb
+    xrextras-loading
     xrextras-runtime-error
     renderer="colorManagement: true; physicallyCorrectLights: true; exposure: 1.2;"
     monolith-interaction>
