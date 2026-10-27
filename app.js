@@ -1,12 +1,19 @@
 /**
- * Photorealistic Alien Monolith & UFO Geospatial WebAR
- * Target 1: Centro Commerciale La Nave (Frattocchie) - Monolith
- * Target 2: Officine Ibba (Santa Maria delle Mole - Via Silvio Pellico 95) - UFO Mothership
+ * Photorealistic Ancient Roman Statue, Alien Monolith & UFO Geospatial WebAR
+ * Target 1: Via Aldo Moro 52 (Frattocchie) - Ancient Roman Statue
+ * Target 2: Centro Commerciale La Nave (Frattocchie) - Monolith
+ * Target 3: Officine Ibba (Santa Maria delle Mole - Via Silvio Pellico 95) - UFO Mothership
  * Built with 8thwall.org & A-Frame (Three.js)
  */
 
 // Exact Real-World Coordinates
 const GEO_TARGETS = {
+  VIA_ALDO_MORO: {
+    name: 'Via Aldo Moro 52',
+    locality: 'Frattocchie (Marino)',
+    lat: 41.76370,
+    lon: 12.60930,
+  },
   LA_NAVE: {
     name: 'Centro Commerciale La Nave',
     locality: 'Frattocchie (Marino)',
@@ -58,22 +65,73 @@ function formatDistance(meters) {
   return (meters / 1000).toFixed(1) + 'km';
 }
 
-// Generate High-Definition Photorealistic PBR Maps (2048x4096)
+// Generate Ancient Carrara Marble PBR Texture with Mineral Veins & SPQR Inscription
+function generateCarraraMarbleTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 1024;
+  const ctx = canvas.getContext('2d');
+
+  // Antique ivory marble base
+  ctx.fillStyle = '#f2efe9';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Subtle marble mineral clouds
+  for (let i = 0; i < 40; i++) {
+    const cx = Math.random() * canvas.width;
+    const cy = Math.random() * canvas.height;
+    const grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, 120);
+    grad.addColorStop(0, 'rgba(215, 208, 195, 0.45)');
+    grad.addColorStop(1, 'rgba(242, 239, 233, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 120, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Organic winding marble veins
+  ctx.lineWidth = 2;
+  for (let v = 0; v < 8; v++) {
+    ctx.strokeStyle = 'rgba(125, 118, 108, 0.28)';
+    ctx.beginPath();
+    let x = Math.random() * canvas.width;
+    let y = 0;
+    ctx.moveTo(x, y);
+    while (y < canvas.height) {
+      y += 15 + Math.random() * 20;
+      x += (Math.random() - 0.5) * 45;
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // Classical S·P·Q·R carved Roman inscription
+  ctx.fillStyle = 'rgba(90, 80, 70, 0.45)';
+  ctx.font = 'bold 36px "Times New Roman", Georgia, serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('S · P · Q · R', canvas.width / 2, canvas.height / 2 + 10);
+
+  // Micro stone grain
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.02)';
+  for (let i = 0; i < 2000; i++) {
+    ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 1.5, 1.5);
+  }
+
+  return new THREE.CanvasTexture(canvas);
+}
+
+// Generate High-Definition Monolith PBR Maps (2048x4096)
 function generateMonolithPBRMaps() {
   const width = 1024;
   const height = 2048;
 
-  // 1. Albedo / Diffuse Canvas
   const albedoCanvas = document.createElement('canvas');
   albedoCanvas.width = width;
   albedoCanvas.height = height;
   const actx = albedoCanvas.getContext('2d');
-
-  // Deep brushed titanium-obsidian alloy base
   actx.fillStyle = '#06080d';
   actx.fillRect(0, 0, width, height);
 
-  // Anisotropic micro-brushing along vertical grain
   actx.strokeStyle = 'rgba(255, 255, 255, 0.025)';
   actx.lineWidth = 1;
   for (let i = 0; i < 800; i++) {
@@ -84,15 +142,13 @@ function generateMonolithPBRMaps() {
     actx.stroke();
   }
 
-  // 2. Roughness Canvas
   const roughCanvas = document.createElement('canvas');
   roughCanvas.width = width;
   roughCanvas.height = height;
   const rctx = roughCanvas.getContext('2d');
-  rctx.fillStyle = '#22252a'; // Base roughness ~0.15
+  rctx.fillStyle = '#22252a';
   rctx.fillRect(0, 0, width, height);
 
-  // Surface micro-imperfections & subtle smudges
   for (let i = 0; i < 60; i++) {
     const rx = Math.random() * width;
     const ry = Math.random() * height;
@@ -105,7 +161,6 @@ function generateMonolithPBRMaps() {
     rctx.fill();
   }
 
-  // 3. Normal & Emissive Canvas for Alien Inscriptions
   const emissiveCanvas = document.createElement('canvas');
   emissiveCanvas.width = width;
   emissiveCanvas.height = height;
@@ -132,7 +187,6 @@ function generateMonolithPBRMaps() {
     ectx.lineTo(cx + span, y);
     ectx.stroke();
 
-    // Geometric micro-runes
     ectx.beginPath();
     ectx.moveTo(cx, y - 8);
     ectx.lineTo(cx + 8, y);
@@ -141,7 +195,6 @@ function generateMonolithPBRMaps() {
     ectx.closePath();
     ectx.fill();
 
-    // Secondary stepped traces
     ectx.beginPath();
     ectx.moveTo(cx - span, y);
     ectx.lineTo(cx - span - 35, y + 35);
@@ -157,7 +210,101 @@ function generateMonolithPBRMaps() {
   };
 }
 
-// Component 1: Photorealistic Alien Monolith (Beveled Precision & PBR Shaders)
+// Component 1: Ancient Roman Statue (Via Aldo Moro 52, Frattocchie)
+AFRAME.registerComponent('ancient-roman-statue', {
+  schema: {
+    height: { type: 'number', default: 1.8 },
+  },
+
+  init() {
+    const group = new THREE.Group();
+    const marbleTexture = generateCarraraMarbleTexture();
+
+    // Weathered Carrara Marble Material
+    const marbleMat = new THREE.MeshStandardMaterial({
+      color: 0xedeae2,
+      map: marbleTexture,
+      roughness: 0.38,
+      metalness: 0.04,
+      bumpMap: marbleTexture,
+      bumpScale: 0.015,
+      envMapIntensity: 0.8,
+    });
+
+    // Antique Bronze/Gold Laurel Wreath Material
+    const laurelMat = new THREE.MeshStandardMaterial({
+      color: 0xc8a44d,
+      roughness: 0.28,
+      metalness: 0.85,
+    });
+
+    // 1. Classical Pedestal Stepped Plinth Base
+    const baseGeo = new THREE.BoxGeometry(0.7, 0.15, 0.7);
+    const baseMesh = new THREE.Mesh(baseGeo, marbleMat);
+    baseMesh.position.y = 0.075;
+    baseMesh.castShadow = true;
+    baseMesh.receiveShadow = true;
+    group.add(baseMesh);
+
+    // 2. Pedestal Column Shaft (with SPQR carved inscription)
+    const shaftGeo = new THREE.BoxGeometry(0.55, 0.7, 0.55);
+    const shaftMesh = new THREE.Mesh(shaftGeo, marbleMat);
+    shaftMesh.position.y = 0.5;
+    shaftMesh.castShadow = true;
+    shaftMesh.receiveShadow = true;
+    group.add(shaftMesh);
+
+    // 3. Classical Capital Plinth Moulding
+    const capGeo = new THREE.BoxGeometry(0.65, 0.1, 0.65);
+    const capMesh = new THREE.Mesh(capGeo, marbleMat);
+    capMesh.position.y = 0.9;
+    capMesh.castShadow = true;
+    capMesh.receiveShadow = true;
+    group.add(capMesh);
+
+    // 4. Statue Torso with Draped Roman Toga
+    const togaGeo = new THREE.CylinderGeometry(0.24, 0.32, 0.65, 24);
+    const togaMesh = new THREE.Mesh(togaGeo, marbleMat);
+    togaMesh.position.y = 1.25;
+    togaMesh.castShadow = true;
+    group.add(togaMesh);
+
+    // Toga Diagonal Fold / Sash
+    const sashGeo = new THREE.TorusGeometry(0.28, 0.06, 12, 24, Math.PI * 1.2);
+    const sashMesh = new THREE.Mesh(sashGeo, marbleMat);
+    sashMesh.position.set(0, 1.35, 0.05);
+    sashMesh.rotation.set(0.4, 0.2, -0.6);
+    sashMesh.castShadow = true;
+    group.add(sashMesh);
+
+    // 5. Classical Roman Bust / Head
+    const headGeo = new THREE.SphereGeometry(0.16, 24, 20);
+    const headMesh = new THREE.Mesh(headGeo, marbleMat);
+    headMesh.position.set(0, 1.68, 0);
+    headMesh.scale.set(0.9, 1.15, 0.95);
+    headMesh.castShadow = true;
+    group.add(headMesh);
+
+    // Stoic Roman nose & brow ridge
+    const noseGeo = new THREE.ConeGeometry(0.035, 0.08, 8);
+    const noseMesh = new THREE.Mesh(noseGeo, marbleMat);
+    noseMesh.position.set(0, 1.66, 0.15);
+    noseMesh.rotation.x = Math.PI / 2;
+    group.add(noseMesh);
+
+    // 6. Classical Roman Laurel Wreath (Corona Triumphalis)
+    const wreathGeo = new THREE.TorusGeometry(0.165, 0.025, 8, 24);
+    const wreathMesh = new THREE.Mesh(wreathGeo, laurelMat);
+    wreathMesh.position.set(0, 1.76, 0);
+    wreathMesh.rotation.x = Math.PI / 2 - 0.2;
+    wreathMesh.castShadow = true;
+    group.add(wreathMesh);
+
+    this.el.setObject3D('mesh', group);
+  },
+});
+
+// Component 2: Photorealistic Alien Monolith (Beveled Precision & PBR Shaders)
 AFRAME.registerComponent('alien-monolith', {
   schema: {
     width: { type: 'number', default: 3.0 },
@@ -169,7 +316,6 @@ AFRAME.registerComponent('alien-monolith', {
     const { width, height, depth } = this.data;
     const maps = generateMonolithPBRMaps();
 
-    // Create beveled geometry for photorealistic edge highlights
     const shape = new THREE.Shape();
     const hw = width / 2;
     const hd = depth / 2;
@@ -197,7 +343,7 @@ AFRAME.registerComponent('alien-monolith', {
 
     const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     geometry.center();
-    geometry.rotateX(Math.PI / 2); // Stand upright
+    geometry.rotateX(Math.PI / 2);
 
     this.material = new THREE.MeshStandardMaterial({
       color: new THREE.Color(0x080b11),
@@ -223,18 +369,16 @@ AFRAME.registerComponent('alien-monolith', {
   tick(time, timeDelta) {
     if (this.material) {
       this.time += (timeDelta || 16) * 0.0018;
-      // Soft breathing glow
       this.material.emissiveIntensity = 0.6 + 0.35 * Math.sin(this.time);
     }
   },
 });
 
-// Component 2: Photorealistic Mothership UFO (Cinema-Grade Multi-tier Architecture)
+// Component 3: Photorealistic Mothership UFO (Cinema-Grade Multi-tier Architecture)
 AFRAME.registerComponent('alien-ufo', {
   init() {
     const group = new THREE.Group();
 
-    // Dark brushed titanium hull material
     const hullMaterial = new THREE.MeshStandardMaterial({
       color: 0x090d14,
       metalness: 0.98,
@@ -242,7 +386,6 @@ AFRAME.registerComponent('alien-ufo', {
       envMapIntensity: 2.0,
     });
 
-    // Dark chrome command canopy
     const cockpitMaterial = new THREE.MeshStandardMaterial({
       color: 0x020406,
       metalness: 1.0,
@@ -250,7 +393,6 @@ AFRAME.registerComponent('alien-ufo', {
       envMapIntensity: 3.0,
     });
 
-    // Quantum plasma reactor material
     this.reactorMaterial = new THREE.MeshStandardMaterial({
       color: 0x00ffe1,
       emissive: 0x00ffe1,
@@ -258,17 +400,7 @@ AFRAME.registerComponent('alien-ufo', {
       roughness: 0.1,
     });
 
-    // 1. Primary Saucer Hull (Stepped aerodynamic chassis with beveled rim)
-    const saucerShape = new THREE.Shape();
-    saucerShape.moveTo(0, 0);
-    saucerShape.lineTo(1.8, 0.4);
-    saucerShape.lineTo(7.5, 0.2);
-    saucerShape.lineTo(9.5, -0.2);
-    saucerShape.lineTo(10.0, -0.6);
-    saucerShape.lineTo(8.5, -1.0);
-    saucerShape.lineTo(3.5, -1.4);
-    saucerShape.lineTo(0, -1.6);
-
+    // 1. Primary Saucer Hull
     const saucerGeo = new THREE.LatheGeometry(
       [
         new THREE.Vector2(0, 0.9),
@@ -286,13 +418,13 @@ AFRAME.registerComponent('alien-ufo', {
     saucerMesh.castShadow = true;
     group.add(saucerMesh);
 
-    // 2. Upper Mirrored Command Bridge Dome
+    // 2. Upper Mirrored Command Dome
     const domeGeo = new THREE.SphereGeometry(3.6, 32, 18, 0, Math.PI * 2, 0, Math.PI * 0.48);
     const domeMesh = new THREE.Mesh(domeGeo, cockpitMaterial);
     domeMesh.position.y = 0.8;
     group.add(domeMesh);
 
-    // 3. Concentric Gravitational Induction Ring (Counter-rotating)
+    // 3. Gravitational Induction Ring (Counter-rotating)
     this.thrusterRing = new THREE.Group();
     const orbMat = new THREE.MeshStandardMaterial({
       color: 0x9d00ff,
@@ -317,7 +449,7 @@ AFRAME.registerComponent('alien-ufo', {
     coreMesh.position.y = -1.2;
     group.add(coreMesh);
 
-    // 5. Volumetric Downward Tractor Beam with Fresnel Falloff
+    // 5. Volumetric Downward Tractor Beam
     const beamGeo = new THREE.ConeGeometry(9.5, 45, 36, 1, true);
     this.beamMaterial = new THREE.MeshBasicMaterial({
       color: 0x00ffe1,
@@ -360,13 +492,11 @@ AFRAME.registerComponent('alien-ufo', {
         this.thrusterRing.rotation.y -= dt * 1.1;
       }
 
-      // Physics-based aerodynamic bobbing and banking
       const bob = Math.sin(this.time * 1.1) * 1.6;
       this.el.object3D.position.y = this.baseY + bob;
       this.ufoGroup.rotation.z = Math.sin(this.time * 0.7) * 0.045;
       this.ufoGroup.rotation.x = Math.cos(this.time * 0.5) * 0.035;
 
-      // Pulsing tractor beam
       if (this.beamMaterial) {
         this.beamMaterial.opacity = 0.2 + 0.12 * Math.sin(this.time * 2.8);
       }
@@ -374,14 +504,13 @@ AFRAME.registerComponent('alien-ufo', {
         this.reactorMaterial.emissiveIntensity = 2.2 + 1.2 * Math.sin(this.time * 2.2);
       }
 
-      // Rhythmic strobe flash
       const flash = Math.sin(this.time * 6) > 0.88;
       this.strobes.forEach((s) => (s.visible = flash));
     }
   },
 });
 
-// Web Audio API Synthesizer (Monolith Sub-Bass + UFO Warp Modulations)
+// Web Audio API Synthesizer (Monolith Sub-Bass + Ancient Harmonic Resonances)
 class AlienAudioSynth {
   constructor() {
     this.audioCtx = null;
@@ -399,7 +528,7 @@ class AlienAudioSynth {
 
     const filter = this.audioCtx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(220, this.audioCtx.currentTime);
+    filter.frequency.setValueAtTime(240, this.audioCtx.currentTime);
     filter.Q.setValueAtTime(4.0, this.audioCtx.currentTime);
 
     const subOsc = this.audioCtx.createOscillator();
@@ -454,10 +583,11 @@ class AlienAudioSynth {
   }
 }
 
-// Master Scene Controller: Geospatial Positioning, Pinch/Slider Scaling, Occlusion & Standpoint Simulation
+// Master Scene Controller
 AFRAME.registerComponent('monolith-interaction', {
   init() {
     const scene = this.el;
+    const statueRig = document.getElementById('statue-rig');
     const monolithRig = document.getElementById('monolith-rig');
     const ufoRig = document.getElementById('ufo-rig');
     const camera = document.getElementById('camera');
@@ -472,16 +602,19 @@ AFRAME.registerComponent('monolith-interaction', {
     const recenterBtn = document.getElementById('btn-recenter');
     const statusText = document.getElementById('xr-status');
     const targetTitle = document.getElementById('target-title');
+    const distMoroEl = document.getElementById('dist-moro');
     const distLaNaveEl = document.getElementById('dist-lanave');
     const distIbbaEl = document.getElementById('dist-ibba');
     const guideText = document.getElementById('guide-text');
 
     // Standpoint Buttons
     const locLiveBtn = document.getElementById('loc-live');
+    const locMoroBtn = document.getElementById('loc-moro');
     const locLaNaveBtn = document.getElementById('loc-lanave');
     const locIbbaBtn = document.getElementById('loc-ibba');
 
     // Sizing Controls
+    const tabStatue = document.getElementById('tab-statue');
     const tabMonolith = document.getElementById('tab-monolith');
     const tabUfo = document.getElementById('tab-ufo');
     const activeTargetTitle = document.getElementById('active-scale-target');
@@ -492,7 +625,8 @@ AFRAME.registerComponent('monolith-interaction', {
     const audioSynth = new AlienAudioSynth();
 
     // Scale State
-    let activeScaleTarget = 'MONOLITH'; // 'MONOLITH' or 'UFO'
+    let activeScaleTarget = 'STATUE'; // 'STATUE', 'MONOLITH', or 'UFO'
+    let statueScale = 1.0;
     let monolithScale = 1.0;
     let ufoScale = 1.5;
 
@@ -500,60 +634,78 @@ AFRAME.registerComponent('monolith-interaction', {
     let occlusionEnabled = true;
 
     // Geospatial State
-    let standpointMode = 'LIVE'; // 'LIVE', 'LANAVE', or 'IBBA'
-    let currentCoords = { lat: GEO_TARGETS.LA_NAVE.lat, lon: GEO_TARGETS.LA_NAVE.lon };
-    let compassHeading = 0; // 0 = North, 90 = East, 180 = South, 270 = West
+    let standpointMode = 'MORO'; // Default to User's house on Via Aldo Moro 52!
+    let currentCoords = { lat: GEO_TARGETS.VIA_ALDO_MORO.lat, lon: GEO_TARGETS.VIA_ALDO_MORO.lon };
+    let compassHeading = 0;
 
     // Presets definitions
+    const statuePresets = [
+      { label: 'TABLETOP (0.5m)', scale: 0.3 },
+      { label: 'GARDEN (1.2m)', scale: 0.7 },
+      { label: 'LIFE-SIZE (1.8m)', scale: 1.0 },
+      { label: 'MONUMENTAL (3.5m)', scale: 2.0 },
+    ];
     const monolithPresets = [
-      { label: 'HUMAN (4m)', scale: 0.33, desc: '0.33x' },
-      { label: 'STANDARD (12m)', scale: 1.0, desc: '1.0x' },
-      { label: 'TITANIC (24m)', scale: 2.0, desc: '2.0x' },
-      { label: 'COLOSSUS (48m)', scale: 4.0, desc: '4.0x' },
+      { label: 'HUMAN (4m)', scale: 0.33 },
+      { label: 'STANDARD (12m)', scale: 1.0 },
+      { label: 'TITANIC (24m)', scale: 2.0 },
+      { label: 'COLOSSUS (48m)', scale: 4.0 },
     ];
     const ufoPresets = [
-      { label: 'SCOUT (12m)', scale: 0.6, desc: '0.6x' },
-      { label: 'CRUISER (25m)', scale: 1.5, desc: '1.5x' },
-      { label: 'MOTHERSHIP (60m)', scale: 3.5, desc: '3.5x' },
-      { label: 'INDEPENDENCE (150m)', scale: 8.0, desc: '8.0x' },
+      { label: 'SCOUT (12m)', scale: 0.6 },
+      { label: 'CRUISER (25m)', scale: 1.5 },
+      { label: 'MOTHERSHIP (60m)', scale: 3.5 },
+      { label: 'INDEPENDENCE (150m)', scale: 8.0 },
     ];
 
     const renderPresets = () => {
       presetsContainer.innerHTML = '';
-      const presets = activeScaleTarget === 'MONOLITH' ? monolithPresets : ufoPresets;
+      let presets = statuePresets;
+      if (activeScaleTarget === 'MONOLITH') presets = monolithPresets;
+      else if (activeScaleTarget === 'UFO') presets = ufoPresets;
+
       presets.forEach((p) => {
         const btn = document.createElement('button');
         btn.className = 'preset-btn';
         btn.innerText = p.label;
-        btn.addEventListener('click', () => {
-          applyScale(p.scale);
-        });
+        btn.addEventListener('click', () => applyScale(p.scale));
         presetsContainer.appendChild(btn);
       });
     };
 
     const updateSliderUI = () => {
-      if (activeScaleTarget === 'MONOLITH') {
+      if (activeScaleTarget === 'STATUE') {
+        sizeSlider.min = 0.2;
+        sizeSlider.max = 4.0;
+        sizeSlider.step = 0.05;
+        sizeSlider.value = statueScale;
+        const h = (statueScale * 1.8).toFixed(1);
+        sizeValLabel.innerText = `${statueScale.toFixed(2)}x (${h}m)`;
+        activeTargetTitle.innerText = 'ROMAN STATUE';
+      } else if (activeScaleTarget === 'MONOLITH') {
         sizeSlider.min = 0.2;
         sizeSlider.max = 5.0;
         sizeSlider.step = 0.05;
         sizeSlider.value = monolithScale;
-        const heightMeters = (monolithScale * 12).toFixed(0);
-        sizeValLabel.innerText = `${monolithScale.toFixed(2)}x (${heightMeters}m)`;
+        const h = (monolithScale * 12).toFixed(0);
+        sizeValLabel.innerText = `${monolithScale.toFixed(2)}x (${h}m)`;
         activeTargetTitle.innerText = 'MONOLITH';
       } else {
         sizeSlider.min = 0.4;
         sizeSlider.max = 10.0;
         sizeSlider.step = 0.1;
         sizeSlider.value = ufoScale;
-        const widthMeters = (ufoScale * 20).toFixed(0);
-        sizeValLabel.innerText = `${ufoScale.toFixed(1)}x (${widthMeters}m)`;
+        const w = (ufoScale * 20).toFixed(0);
+        sizeValLabel.innerText = `${ufoScale.toFixed(1)}x (${w}m)`;
         activeTargetTitle.innerText = 'MOTHERSHIP UFO';
       }
     };
 
     const applyScale = (val) => {
-      if (activeScaleTarget === 'MONOLITH') {
+      if (activeScaleTarget === 'STATUE') {
+        statueScale = parseFloat(val);
+        statueRig.setAttribute('scale', `${statueScale} ${statueScale} ${statueScale}`);
+      } else if (activeScaleTarget === 'MONOLITH') {
         monolithScale = parseFloat(val);
         monolithRig.setAttribute('scale', `${monolithScale} ${monolithScale} ${monolithScale}`);
       } else {
@@ -566,9 +718,19 @@ AFRAME.registerComponent('monolith-interaction', {
     renderPresets();
     updateSliderUI();
 
+    tabStatue.addEventListener('click', () => {
+      activeScaleTarget = 'STATUE';
+      tabStatue.classList.add('active');
+      tabMonolith.classList.remove('active');
+      tabUfo.classList.remove('active');
+      renderPresets();
+      updateSliderUI();
+    });
+
     tabMonolith.addEventListener('click', () => {
       activeScaleTarget = 'MONOLITH';
       tabMonolith.classList.add('active');
+      tabStatue.classList.remove('active');
       tabUfo.classList.remove('active');
       renderPresets();
       updateSliderUI();
@@ -577,6 +739,7 @@ AFRAME.registerComponent('monolith-interaction', {
     tabUfo.addEventListener('click', () => {
       activeScaleTarget = 'UFO';
       tabUfo.classList.add('active');
+      tabStatue.classList.remove('active');
       tabMonolith.classList.remove('active');
       renderPresets();
       updateSliderUI();
@@ -597,7 +760,9 @@ AFRAME.registerComponent('monolith-interaction', {
 
         if (initialPinchDist === null) {
           initialPinchDist = dist;
-          initialPinchScale = activeScaleTarget === 'MONOLITH' ? monolithScale : ufoScale;
+          if (activeScaleTarget === 'STATUE') initialPinchScale = statueScale;
+          else if (activeScaleTarget === 'MONOLITH') initialPinchScale = monolithScale;
+          else initialPinchScale = ufoScale;
         } else {
           const ratio = dist / initialPinchDist;
           const newScale = Math.max(0.2, Math.min(10.0, initialPinchScale * ratio));
@@ -616,38 +781,46 @@ AFRAME.registerComponent('monolith-interaction', {
       const userLat = currentCoords.lat;
       const userLon = currentCoords.lon;
 
-      // 1. Distance & Bearing to La Nave (Monolith)
+      // 1. Distance & Bearing to Via Aldo Moro 52 (Roman Statue)
+      const distMoro = calculateDistanceMeters(userLat, userLon, GEO_TARGETS.VIA_ALDO_MORO.lat, GEO_TARGETS.VIA_ALDO_MORO.lon);
+      const bearingMoro = calculateBearing(userLat, userLon, GEO_TARGETS.VIA_ALDO_MORO.lat, GEO_TARGETS.VIA_ALDO_MORO.lon);
+
+      // 2. Distance & Bearing to La Nave (Monolith)
       const distLaNave = calculateDistanceMeters(userLat, userLon, GEO_TARGETS.LA_NAVE.lat, GEO_TARGETS.LA_NAVE.lon);
       const bearingLaNave = calculateBearing(userLat, userLon, GEO_TARGETS.LA_NAVE.lat, GEO_TARGETS.LA_NAVE.lon);
 
-      // 2. Distance & Bearing to Officine Ibba (UFO)
+      // 3. Distance & Bearing to Officine Ibba (UFO)
       const distIbba = calculateDistanceMeters(userLat, userLon, GEO_TARGETS.OFFICINE_IBBA.lat, GEO_TARGETS.OFFICINE_IBBA.lon);
       const bearingIbba = calculateBearing(userLat, userLon, GEO_TARGETS.OFFICINE_IBBA.lat, GEO_TARGETS.OFFICINE_IBBA.lon);
 
+      if (distMoroEl) distMoroEl.innerText = `${formatDistance(distMoro)} (${Math.round(bearingMoro)}°)`;
       if (distLaNaveEl) distLaNaveEl.innerText = `${formatDistance(distLaNave)} (${Math.round(bearingLaNave)}°)`;
       if (distIbbaEl) distIbbaEl.innerText = `${formatDistance(distIbba)} (${Math.round(bearingIbba)}°)`;
 
       // Transform Compass Bearing + Distance to A-Frame AR Coordinates (X, Z)
-      // Bearing theta relative to camera heading:
+      const radBearingMoro = ((bearingMoro - compassHeading) * Math.PI) / 180;
       const radBearingLaNave = ((bearingLaNave - compassHeading) * Math.PI) / 180;
       const radBearingIbba = ((bearingIbba - compassHeading) * Math.PI) / 180;
 
-      // Distance projection (clamp distant horizon targets to visible AR frustum)
-      const renderDistLaNave = distLaNave < 80 ? Math.max(8, distLaNave) : 40;
-      const renderDistIbba = distIbba < 100 ? Math.max(15, distIbba) : 75;
+      // Distance projection: If user is on-site (< 60m), place right in front of them
+      const renderDistMoro = distMoro < 60 ? Math.max(3.5, distMoro) : 25;
+      const renderDistLaNave = distLaNave < 80 ? Math.max(8, distLaNave) : 45;
+      const renderDistIbba = distIbba < 100 ? Math.max(15, distIbba) : 80;
+
+      const statueX = Math.sin(radBearingMoro) * renderDistMoro;
+      const statueZ = -Math.cos(radBearingMoro) * renderDistMoro;
 
       const monolithX = Math.sin(radBearingLaNave) * renderDistLaNave;
       const monolithZ = -Math.cos(radBearingLaNave) * renderDistLaNave;
 
       const ufoX = Math.sin(radBearingIbba) * renderDistIbba;
       const ufoZ = -Math.cos(radBearingIbba) * renderDistIbba;
-      const ufoAltitude = distIbba < 100 ? 25 : 38; // Hover directly above building if on-site
+      const ufoAltitude = distIbba < 100 ? 25 : 38;
 
-      // Apply positions to rigs
+      statueRig.setAttribute('position', `${statueX.toFixed(2)} 0 ${statueZ.toFixed(2)}`);
       monolithRig.setAttribute('position', `${monolithX.toFixed(2)} 0 ${monolithZ.toFixed(2)}`);
       ufoRig.setAttribute('position', `${ufoX.toFixed(2)} ${ufoAltitude.toFixed(1)} ${ufoZ.toFixed(2)}`);
 
-      // Ground plane follows viewer
       ground.setAttribute('position', `0 0 0`);
     };
 
@@ -655,35 +828,43 @@ AFRAME.registerComponent('monolith-interaction', {
     const setStandpoint = (mode) => {
       standpointMode = mode;
       locLiveBtn.classList.remove('active');
+      locMoroBtn.classList.remove('active');
       locLaNaveBtn.classList.remove('active');
       locIbbaBtn.classList.remove('active');
 
       if (mode === 'LIVE') {
         locLiveBtn.classList.add('active');
         targetTitle.innerText = 'GEOSPATIAL: LIVE SATELLITE GPS';
-        guideText.innerText = 'Calculating positions using your phone live GPS and compass...';
+        guideText.innerText = 'Tracking positions using your phone GPS and compass...';
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition((pos) => {
             currentCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
             updateGeospatialPositions();
           });
         }
+      } else if (mode === 'MORO') {
+        locMoroBtn.classList.add('active');
+        currentCoords = { lat: GEO_TARGETS.VIA_ALDO_MORO.lat, lon: GEO_TARGETS.VIA_ALDO_MORO.lon };
+        targetTitle.innerText = 'STANDPOINT: VIA ALDO MORO 52 (FRATTOCCHIE)';
+        guideText.innerText = 'Ancient Roman statue right in front of your house!';
+        updateGeospatialPositions();
       } else if (mode === 'LANAVE') {
         locLaNaveBtn.classList.add('active');
         currentCoords = { lat: GEO_TARGETS.LA_NAVE.lat, lon: GEO_TARGETS.LA_NAVE.lon };
         targetTitle.innerText = 'STANDPOINT: CENTRO COMMERCIALE LA NAVE';
-        guideText.innerText = 'Monolith is right on the front plaza; UFO looms NW over S. Maria delle Mole!';
+        guideText.innerText = 'Alien monolith right in front of the shopping mall!';
         updateGeospatialPositions();
       } else if (mode === 'IBBA') {
         locIbbaBtn.classList.add('active');
         currentCoords = { lat: GEO_TARGETS.OFFICINE_IBBA.lat, lon: GEO_TARGETS.OFFICINE_IBBA.lon };
-        targetTitle.innerText = 'STANDPOINT: OFFICINE IBBA (VIA SILVIO PELLICO 95)';
-        guideText.innerText = 'Mothership UFO hovering directly above the building rooftop!';
+        targetTitle.innerText = 'STANDPOINT: OFFICINE IBBA (SANTA MARIA DELLE MOLE)';
+        guideText.innerText = 'Mothership UFO hovering directly above Via Silvio Pellico 95!';
         updateGeospatialPositions();
       }
     };
 
     locLiveBtn.addEventListener('click', () => setStandpoint('LIVE'));
+    locMoroBtn.addEventListener('click', () => setStandpoint('MORO'));
     locLaNaveBtn.addEventListener('click', () => setStandpoint('LANAVE'));
     locIbbaBtn.addEventListener('click', () => setStandpoint('IBBA'));
 
@@ -714,7 +895,7 @@ AFRAME.registerComponent('monolith-interaction', {
       updateGeospatialPositions();
     });
 
-    // Occlusion Toggle (Ensures foreground real elements occlude the background 3D models)
+    // Occlusion Toggle
     occlusionBtn.addEventListener('click', () => {
       occlusionEnabled = !occlusionEnabled;
       if (occlusionEnabled) {
@@ -729,27 +910,22 @@ AFRAME.registerComponent('monolith-interaction', {
       }
     });
 
-    // Start / Initialize Experience - Dismisses overlay instantly
+    // Start / Initialize Experience
     startBtn.addEventListener('click', () => {
-      // 1. Immediately dismiss landing page overlay so user is never stuck
       startOverlay.classList.add('hidden');
-
-      // 2. Start extraterrestrial ambient audio hum
       audioSynth.toggle();
       soundBtn.classList.add('active');
 
-      // 3. iOS Safari DeviceOrientation permission
       if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission().catch((e) => console.warn('Device orientation permission:', e));
+        DeviceOrientationEvent.requestPermission().catch((e) => console.warn('Orientation permission:', e));
       }
 
-      // 4. Update HUD and launch 8th Wall SLAM & Camera
       if (statusText) statusText.innerText = 'CONNECTING CAMERA...';
       scene.emit('runreality');
       scene.emit('runxr');
 
-      // 5. Default standpoint to La Nave so objects are immediately in view
-      setStandpoint('LANAVE');
+      // Default standpoint directly to User's House on Via Aldo Moro 52!
+      setStandpoint('MORO');
     });
 
     // Sound toggle
@@ -764,29 +940,36 @@ AFRAME.registerComponent('monolith-interaction', {
       }
     });
 
-    // Focus Camera / Jump between Monolith and UFO
-    let currentFocus = 'MONOLITH';
+    // Cycle Focus between Statue, Monolith, and UFO
+    let currentFocus = 'STATUE';
     focusBtn.addEventListener('click', () => {
       const camObj = camera.object3D;
-      if (currentFocus === 'MONOLITH') {
+      const forward = new THREE.Vector3(0, 0, -1);
+      forward.applyQuaternion(camObj.quaternion);
+
+      if (currentFocus === 'STATUE') {
+        currentFocus = 'MONOLITH';
+        focusBtn.innerHTML = '<span class="btn-icon">▲</span> FOCUS: LA NAVE';
+        guideText.innerText = 'Focusing on Alien Monolith (Centro Commerciale La Nave)';
+        const targetPos = camObj.position.clone().add(forward.multiplyScalar(15));
+        monolithRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
+      } else if (currentFocus === 'MONOLITH') {
         currentFocus = 'UFO';
         focusBtn.innerHTML = '<span class="btn-icon">🛸</span> FOCUS: UFO';
-        guideText.innerText = 'Looking up towards Mothership UFO above Santa Maria delle Mole';
-        // Swivel UFO in direct sight line
-        const forward = new THREE.Vector3(0, 0, -1);
-        forward.applyQuaternion(camObj.quaternion);
+        guideText.innerText = 'Focusing on Mothership UFO above Santa Maria delle Mole';
         const targetPos = camObj.position.clone().add(forward.multiplyScalar(35));
         targetPos.y = 26;
         ufoRig.setAttribute('position', `${targetPos.x.toFixed(2)} ${targetPos.y.toFixed(2)} ${targetPos.z.toFixed(2)}`);
       } else {
-        currentFocus = 'MONOLITH';
-        focusBtn.innerHTML = '<span class="btn-icon">▲</span> FOCUS: LA NAVE';
-        guideText.innerText = 'Monolith placed at the front entrance plaza of La Nave';
-        updateGeospatialPositions();
+        currentFocus = 'STATUE';
+        focusBtn.innerHTML = '<span class="btn-icon">🏛️</span> FOCUS: STATUE';
+        guideText.innerText = 'Focusing on Ancient Roman Statue in front of Via Aldo Moro 52';
+        const targetPos = camObj.position.clone().add(forward.multiplyScalar(3.5));
+        statueRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
       }
     });
 
-    // Recenter Monolith
+    // Recenter
     recenterBtn.addEventListener('click', () => {
       const camObj = camera.object3D;
       const forward = new THREE.Vector3(0, 0, -1);
@@ -794,9 +977,19 @@ AFRAME.registerComponent('monolith-interaction', {
       forward.y = 0;
       forward.normalize();
 
-      const targetPos = camObj.position.clone().add(forward.multiplyScalar(15));
-      monolithRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
-      monolithRig.object3D.lookAt(camObj.position.x, 0, camObj.position.z);
+      if (activeScaleTarget === 'STATUE') {
+        const targetPos = camObj.position.clone().add(forward.multiplyScalar(3.5));
+        statueRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
+        statueRig.object3D.lookAt(camObj.position.x, 0, camObj.position.z);
+      } else if (activeScaleTarget === 'MONOLITH') {
+        const targetPos = camObj.position.clone().add(forward.multiplyScalar(15));
+        monolithRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
+        monolithRig.object3D.lookAt(camObj.position.x, 0, camObj.position.z);
+      } else {
+        const targetPos = camObj.position.clone().add(forward.multiplyScalar(35));
+        targetPos.y = 26;
+        ufoRig.setAttribute('position', `${targetPos.x.toFixed(2)} ${targetPos.y.toFixed(2)} ${targetPos.z.toFixed(2)}`);
+      }
 
       if (statusText) {
         statusText.innerText = 'RECENTERED AT VIEW';
@@ -804,7 +997,7 @@ AFRAME.registerComponent('monolith-interaction', {
       }
     });
 
-    // Tap on ground to reposition Monolith
+    // Tap on ground to reposition active object
     scene.addEventListener('click', (e) => {
       if (e.target.closest('#hud-container') || e.target.closest('#start-overlay')) {
         return;
@@ -814,8 +1007,14 @@ AFRAME.registerComponent('monolith-interaction', {
       forward.applyQuaternion(camObj.quaternion);
       forward.y = 0;
       forward.normalize();
-      const targetPos = camObj.position.clone().add(forward.multiplyScalar(14));
-      monolithRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
+
+      if (activeScaleTarget === 'STATUE') {
+        const targetPos = camObj.position.clone().add(forward.multiplyScalar(3.5));
+        statueRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
+      } else if (activeScaleTarget === 'MONOLITH') {
+        const targetPos = camObj.position.clone().add(forward.multiplyScalar(14));
+        monolithRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
+      }
     });
 
     // 8th Wall Events

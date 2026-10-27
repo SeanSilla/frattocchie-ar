@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>Alien Monolith & UFO AR | La Nave & Officine Ibba</title>
+  <title>Alien Monolith, UFO & Roman Statue AR | Frattocchie</title>
   
   <link rel="stylesheet" href="style.css">
 
@@ -15,7 +15,7 @@
   <script src="//cdn.8thwall.com/web/aframe/8frame-1.5.0.min.js"></script>
 
   <!-- 
-    2. 8th Wall XRExtras (Loading screens, runtime error handling & camera coaching)
+    2. 8th Wall XRExtras (Runtime error handling & camera coaching)
   -->
   <script src="//cdn.8thwall.com/web/xrextras/xrextras.js"></script>
 
@@ -40,15 +40,17 @@
         <div class="hud-status" id="xr-status">STANDBY</div>
       </div>
       
-      <!-- Live GPS distances to the two exact landmarks -->
+      <!-- Live GPS distances to the 3 exact landmarks -->
       <div class="hud-geo-row">
-        <span>📍 LA NAVE (FRATTOCCHIE): <span id="dist-lanave" class="hud-geo-tag">CALCULATING...</span></span>
-        <span>🛸 OFFICINE IBBA (S. MARIA MOLE): <span id="dist-ibba" class="hud-geo-tag">CALCULATING...</span></span>
+        <span>🏛️ VIA ALDO MORO: <span id="dist-moro" class="hud-geo-tag">CALCULATING...</span></span>
+        <span>▲ LA NAVE: <span id="dist-lanave" class="hud-geo-tag">CALCULATING...</span></span>
+        <span>🛸 OFF. IBBA: <span id="dist-ibba" class="hud-geo-tag">CALCULATING...</span></span>
       </div>
 
       <!-- Standpoint Mode Selector: allows testing on-site or simulating standing right there -->
       <div class="location-switcher">
         <button id="loc-live" class="loc-btn active" title="Use Live Satellite GPS & Compass">🌐 LIVE GPS</button>
+        <button id="loc-moro" class="loc-btn" title="Simulate standing at Via Aldo Moro 52">🏠 VIA ALDO MORO 52</button>
         <button id="loc-lanave" class="loc-btn" title="Simulate standing at Plaza of La Nave">🏢 STAND AT LA NAVE</button>
         <button id="loc-ibba" class="loc-btn" title="Simulate standing at Officine Ibba">☕ STAND AT IBBA</button>
       </div>
@@ -56,24 +58,25 @@
 
     <!-- Guidance HUD -->
     <div id="placement-guide" class="guide-box">
-      <p id="guide-text">Look towards Santa Maria delle Mole for the UFO or La Nave plaza for the Monolith</p>
+      <p id="guide-text">Look around for the Roman Statue (Aldo Moro), Monolith (La Nave), or UFO (Ibba)</p>
     </div>
 
     <!-- Sizing Control Panel -->
     <div id="size-control-panel">
       <div class="size-header">
-        <span class="size-title">OBJECT RESIZING: <span id="active-scale-target">MONOLITH</span></span>
+        <span class="size-title">RESIZING: <span id="active-scale-target">ROMAN STATUE</span></span>
         <div class="size-tabs">
-          <button id="tab-monolith" class="size-tab-btn active">MONOLITH</button>
+          <button id="tab-statue" class="size-tab-btn active">STATUE</button>
+          <button id="tab-monolith" class="size-tab-btn">MONOLITH</button>
           <button id="tab-ufo" class="size-tab-btn">UFO</button>
         </div>
       </div>
       <div class="slider-row">
         <input type="range" id="size-slider" class="scale-slider" min="0.2" max="4.0" step="0.05" value="1.0">
-        <span id="size-val-label" class="scale-value-label">1.0x (12m)</span>
+        <span id="size-val-label" class="scale-value-label">1.0x (1.8m)</span>
       </div>
       <div class="size-presets" id="presets-container">
-        <!-- Injected dynamically in app.js for Monolith or UFO -->
+        <!-- Injected dynamically in app.js for Statue, Monolith, or UFO -->
       </div>
     </div>
 
@@ -85,10 +88,10 @@
       <button id="btn-occlusion" class="hud-btn active" title="Toggle Foreground Occlusion">
         <span class="btn-icon">👁️</span> OCCLUSION: ON
       </button>
-      <button id="btn-focus-toggle" class="hud-btn" title="Focus Camera on UFO / Monolith">
-        <span class="btn-icon">🎯</span> FOCUS: LA NAVE
+      <button id="btn-focus-toggle" class="hud-btn" title="Cycle Camera Focus">
+        <span class="btn-icon">🎯</span> FOCUS: STATUE
       </button>
-      <button id="btn-recenter" class="hud-btn" title="Re-anchor in front of you">
+      <button id="btn-recenter" class="hud-btn" title="Re-anchor current object in front of you">
         <span class="btn-icon">🔄</span> RECENTER
       </button>
     </div>
@@ -97,13 +100,14 @@
   <!-- Custom Start / Audio Trigger Screen -->
   <div id="start-overlay" class="overlay">
     <div class="overlay-card">
-      <div class="alien-glyph">▲ ◈ 🛸 ◈ ▲</div>
-      <h1>GEOSPATIAL ANOMALY DETECTED</h1>
+      <div class="alien-glyph">🏛️ ◈ ▲ ◈ 🛸</div>
+      <h1>TRI-ANOMALY AR MATRIX</h1>
       <p class="location-tag">FRATTOCCHIE & SANTA MARIA DELLE MOLE</p>
       <div class="description">
+        • <strong>Ancient Roman Statue:</strong> In front of Via Aldo Moro 52 (Frattocchie)<br>
         • <strong>Alien Monolith:</strong> Plaza of Centro Commerciale La Nave (Frattocchie)<br>
         • <strong>Mothership UFO:</strong> Hovering above Officine Ibba (Via Silvio Pellico 95)<br><br>
-        <em>Features: Photorealistic PBR metallic shaders, live GPS geolocalization, foreground occlusion, and size adjustment.</em>
+        <em>Features: Photorealistic PBR Carrara marble & dark alloys, GPS geolocalization, foreground occlusion, and touch sizing.</em>
       </div>
       <button id="start-btn" class="glow-button">INITIALIZE AR SCAN</button>
       <div class="engine-badge">
@@ -137,7 +141,6 @@
     </a-camera>
 
     <!-- Photorealistic Atmospheric Lighting Rig -->
-    <!-- Sky / Ambient Cool Skylight -->
     <a-entity light="type: hemisphere; skyColor: #64748b; groundColor: #1e293b; intensity: 1.1;"></a-entity>
     
     <!-- Primary Directional Sun Light casting crisp contact shadows -->
@@ -147,13 +150,13 @@
       position="8 20 12">
     </a-entity>
 
-    <!-- Cold Atmospheric Rim Light for Alien Metallic Sheen -->
+    <!-- Cold Atmospheric Rim Light for Alien Sheen -->
     <a-entity
       light="type: directional; color: #00d9ff; intensity: 1.4;"
       position="-12 12 -15">
     </a-entity>
 
-    <!-- Warm Pavement Bounce Light -->
+    <!-- Warm Mediterranean Bounce Light -->
     <a-entity
       light="type: directional; color: #fed7aa; intensity: 0.6;"
       position="0 -5 5">
@@ -169,22 +172,30 @@
     </a-entity>
 
     <!-- 
-      ANOMALY 1: PHOTOREALISTIC ALIEN MONOLITH
-      Positioned via GPS coordinates relative to Centro Commerciale La Nave (Frattocchie)
+      ANOMALY 1: ANCIENT ROMAN STATUE (Via Aldo Moro 52, Frattocchie)
+      Pedestal with S.P.Q.R. carved inscription & classical weathered Carrara marble sculpture
+    -->
+    <a-entity id="statue-rig" position="0 0 -4">
+      <a-entity id="statue-mesh" ancient-roman-statue shadow="cast: true; receive: true;"></a-entity>
+      <a-circle
+        radius="1.2"
+        rotation="-90 0 0"
+        position="0 0.02 0"
+        material="color: #000000; opacity: 0.65; transparent: true;">
+      </a-circle>
+    </a-entity>
+
+    <!-- 
+      ANOMALY 2: PHOTOREALISTIC ALIEN MONOLITH (Centro Commerciale La Nave)
     -->
     <a-entity id="monolith-rig" position="0 0 -15">
-      <!-- Photorealistic Monolith Mesh (Procedural beveled obsidian alloy & PBR shaders) -->
       <a-entity id="monolith-mesh" alien-monolith shadow="cast: true; receive: true;"></a-entity>
-
-      <!-- Soft Ground Contact Ambient Occlusion Ring -->
       <a-circle
         radius="3.2"
         rotation="-90 0 0"
         position="0 0.02 0"
         material="color: #000000; opacity: 0.85; transparent: true;">
       </a-circle>
-
-      <!-- Alien Ground Rune / Electromagnetic Glow Ring -->
       <a-ring
         id="energy-ring"
         color="#00ffe1"
@@ -195,8 +206,6 @@
         material="opacity: 0.8; transparent: true; emissive: #00ffe1; emissiveIntensity: 2.5;"
         animation="property: rotation; to: -90 360 0; dur: 20000; loop: true; easing: linear;">
       </a-ring>
-
-      <!-- Upward Ground Spot illuminating Monolith -->
       <a-entity
         light="type: spot; color: #00f0ff; intensity: 4.0; distance: 25; penumbra: 0.8; angle: 50;"
         position="0 0.1 2.5"
@@ -205,21 +214,15 @@
     </a-entity>
 
     <!-- 
-      ANOMALY 2: PHOTOREALISTIC MOTHERSHIP UFO
-      Positioned via GPS coordinates above Officine Ibba (Santa Maria delle Mole)
+      ANOMALY 3: PHOTOREALISTIC MOTHERSHIP UFO (Officine Ibba - Santa Maria delle Mole)
     -->
     <a-entity id="ufo-rig" position="-45 35 -65" scale="1.5 1.5 1.5">
-      <!-- Photorealistic UFO Mesh (Multi-tiered titanium hull, rotating plasma ring, command dome) -->
       <a-entity id="ufo-mesh" alien-ufo></a-entity>
-
-      <!-- Downward Volumetric Spotlight Illuminating Ground below UFO -->
       <a-entity
         light="type: spot; color: #00ffe1; intensity: 7.0; distance: 80; penumbra: 0.6; angle: 45;"
         position="0 -2 0"
         rotation="90 0 0">
       </a-entity>
-
-      <!-- Atmospheric Ambient Glow around the UFO -->
       <a-entity
         light="type: point; color: #9d00ff; intensity: 4.5; distance: 35;"
         position="0 2 0">
