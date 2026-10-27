@@ -1,9 +1,11 @@
-/* Alien Monolith WebAR - Centro Commerciale La Nave */
+/* Alien Monolith & UFO WebAR - Centro Commerciale La Nave & Officine Ibba */
 :root {
   --neon-cyan: #00ffe1;
   --neon-purple: #9d00ff;
-  --dark-bg: rgba(8, 12, 18, 0.85);
+  --neon-gold: #ffb700;
+  --dark-bg: rgba(6, 10, 16, 0.88);
   --dark-border: rgba(0, 255, 225, 0.35);
+  --glass-blur: blur(14px);
 }
 
 * {
@@ -31,7 +33,7 @@ html, body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at center, #0f172a 0%, #030712 100%);
+  background: radial-gradient(circle at center, #0b1329 0%, #02040a 100%);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -47,53 +49,58 @@ html, body {
 }
 
 .overlay-card {
-  background: rgba(15, 23, 42, 0.9);
+  background: rgba(10, 16, 28, 0.92);
   border: 1px solid var(--neon-cyan);
   border-radius: 16px;
-  padding: 30px 24px;
-  max-width: 420px;
+  padding: 28px 22px;
+  max-width: 440px;
   width: 100%;
   text-align: center;
-  box-shadow: 0 0 30px rgba(0, 255, 225, 0.25), inset 0 0 20px rgba(0, 255, 225, 0.05);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 0 35px rgba(0, 255, 225, 0.25), inset 0 0 25px rgba(0, 255, 225, 0.05);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .alien-glyph {
-  font-size: 24px;
-  letter-spacing: 8px;
+  font-size: 20px;
+  letter-spacing: 6px;
   color: var(--neon-cyan);
   margin-bottom: 12px;
   animation: pulseGlyph 2s infinite ease-in-out;
 }
 
 .overlay-card h1 {
-  font-size: 22px;
-  letter-spacing: 3px;
+  font-size: 20px;
+  letter-spacing: 2px;
   margin: 0 0 8px 0;
   color: #ffffff;
-  text-shadow: 0 0 10px rgba(0, 255, 225, 0.5);
+  text-shadow: 0 0 12px rgba(0, 255, 225, 0.6);
 }
 
 .location-tag {
   font-size: 11px;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   color: var(--neon-cyan);
   font-weight: 700;
-  margin: 0 0 16px 0;
+  margin: 0 0 14px 0;
 }
 
 .description {
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.6;
   color: #cbd5e1;
-  margin-bottom: 24px;
+  margin-bottom: 22px;
+  text-align: left;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 12px 14px;
+  border-radius: 8px;
+  border-left: 3px solid var(--neon-cyan);
 }
 
 .glow-button {
   width: 100%;
   padding: 16px 20px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 2px;
   color: #030712;
@@ -101,7 +108,7 @@ html, body {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  box-shadow: 0 0 20px rgba(0, 255, 225, 0.6);
+  box-shadow: 0 0 25px rgba(0, 255, 225, 0.65);
   transition: transform 0.15s ease, background-color 0.2s ease;
 }
 
@@ -111,7 +118,7 @@ html, body {
 }
 
 .engine-badge {
-  margin-top: 18px;
+  margin-top: 16px;
   font-size: 11px;
   color: var(--neon-cyan);
   line-height: 1.4;
@@ -127,12 +134,12 @@ html, body {
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none; /* Let touches pass through to A-Frame scene */
+  pointer-events: none;
   z-index: 100;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 20px) 16px;
+  padding: env(safe-area-inset-top, 12px) 12px env(safe-area-inset-bottom, 16px) 12px;
 }
 
 .hud-header {
@@ -141,9 +148,10 @@ html, body {
   gap: 6px;
   background: var(--dark-bg);
   border: 1px solid var(--dark-border);
-  border-radius: 8px;
-  padding: 10px 14px;
-  backdrop-filter: blur(8px);
+  border-radius: 10px;
+  padding: 10px 12px;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   pointer-events: auto;
 }
 
@@ -151,22 +159,6 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.hud-geo-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 10px;
-  color: #94a3b8;
-  border-top: 1px dashed rgba(0, 255, 225, 0.2);
-  padding-top: 5px;
-  margin-top: 2px;
-}
-
-.hud-geo-tag {
-  color: var(--neon-cyan);
-  font-family: monospace;
 }
 
 .hud-target-badge {
@@ -197,12 +189,168 @@ html, body {
   letter-spacing: 1px;
 }
 
-/* Placement Crosshair / Guidance */
+.hud-geo-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: #94a3b8;
+  border-top: 1px dashed rgba(0, 255, 225, 0.2);
+  padding-top: 5px;
+  margin-top: 2px;
+}
+
+.hud-geo-tag {
+  color: var(--neon-cyan);
+  font-weight: bold;
+}
+
+/* Standpoint Location Switcher */
+.location-switcher {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.loc-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 255, 225, 0.25);
+  color: #cbd5e1;
+  border-radius: 6px;
+  padding: 5px 6px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.loc-btn.active {
+  background: rgba(0, 255, 225, 0.2);
+  border-color: var(--neon-cyan);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(0, 255, 225, 0.4);
+}
+
+/* Size Adjustment Drawer / Modal */
+#size-control-panel {
+  background: var(--dark-bg);
+  border: 1px solid var(--dark-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  pointer-events: auto;
+  align-self: center;
+  max-width: 380px;
+  width: calc(100% - 24px);
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
+}
+
+.size-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.size-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--neon-cyan);
+}
+
+.size-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.size-tab-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: #94a3b8;
+  font-size: 9px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.size-tab-btn.active {
+  background: var(--neon-cyan);
+  color: #030712;
+  border-color: var(--neon-cyan);
+  font-weight: 700;
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scale-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  outline: none;
+}
+
+.scale-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--neon-cyan);
+  cursor: pointer;
+  box-shadow: 0 0 10px var(--neon-cyan);
+}
+
+.scale-value-label {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: monospace;
+  min-width: 50px;
+  color: #fff;
+  text-align: right;
+}
+
+.size-presets {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.preset-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 4px 2px;
+  font-size: 9px;
+  color: #cbd5e1;
+  cursor: pointer;
+  text-align: center;
+}
+
+.preset-btn:active {
+  border-color: var(--neon-cyan);
+  color: var(--neon-cyan);
+}
+
+/* Guidance HUD */
 .guide-box {
   align-self: center;
   text-align: center;
-  background: rgba(0, 0, 0, 0.4);
-  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 6px 14px;
   border-radius: 20px;
   border: 1px dashed rgba(0, 255, 225, 0.4);
   pointer-events: none;
@@ -211,15 +359,15 @@ html, body {
 
 .guide-box p {
   margin: 0;
-  font-size: 12px;
-  color: #94a3b8;
+  font-size: 11px;
+  color: #cbd5e1;
   letter-spacing: 0.5px;
 }
 
 /* Controls Footer */
 .hud-controls {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   justify-content: center;
   flex-wrap: wrap;
   pointer-events: auto;
@@ -230,15 +378,16 @@ html, body {
   color: #e2e8f0;
   border: 1px solid var(--dark-border);
   border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 12px;
+  padding: 9px 12px;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   cursor: pointer;
-  backdrop-filter: blur(6px);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   transition: all 0.2s ease;
 }
@@ -267,13 +416,13 @@ html, body {
 }
 
 @keyframes fadeInOut {
-  0% { opacity: 0.4; }
-  100% { opacity: 0.9; }
+  0% { opacity: 0.5; }
+  100% { opacity: 0.95; }
 }
 
 @media (max-width: 480px) {
   .hud-btn {
     padding: 8px 10px;
-    font-size: 11px;
+    font-size: 10px;
   }
 }

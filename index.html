@@ -21,7 +21,6 @@
 
   <!-- 
     3. 8th Wall Open Source SLAM Engine Binary (8thwall.org)
-    Loaded synchronously after 8-Frame so that window.AFRAME.registerComponent("xrweb") registers properly!
   -->
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" data-preload-chunks="slam"></script>
 
@@ -31,24 +30,51 @@
 <body>
   <!-- Sci-Fi HUD Overlay -->
   <div id="hud-container">
+    <!-- Header with Live Geospatial Status & Location Selector -->
     <div class="hud-header">
       <div class="hud-top-row">
         <div class="hud-target-badge">
           <span class="pulse-dot"></span>
-          <span class="hud-text" id="target-title">TARGET: LA NAVE CC (FRATTOCCHIE)</span>
+          <span class="hud-text" id="target-title">GEOSPATIAL AR ACTIVE</span>
         </div>
-        <div class="hud-status" id="xr-status">CALIBRATING CAMERA...</div>
+        <div class="hud-status" id="xr-status">STANDBY</div>
       </div>
+      
+      <!-- Live GPS distances to the two exact landmarks -->
       <div class="hud-geo-row">
-        <span>📍 LA NAVE: <span id="dist-lanave" class="hud-geo-tag">CALCULATING...</span></span>
-        <span>🛸 OFFICINE IBBA: <span id="dist-ibba" class="hud-geo-tag">CALCULATING...</span></span>
+        <span>📍 LA NAVE (FRATTOCCHIE): <span id="dist-lanave" class="hud-geo-tag">CALCULATING...</span></span>
+        <span>🛸 OFFICINE IBBA (S. MARIA MOLE): <span id="dist-ibba" class="hud-geo-tag">CALCULATING...</span></span>
+      </div>
+
+      <!-- Standpoint Mode Selector: allows testing on-site or simulating standing right there -->
+      <div class="location-switcher">
+        <button id="loc-live" class="loc-btn active" title="Use Live Satellite GPS & Compass">🌐 LIVE GPS</button>
+        <button id="loc-lanave" class="loc-btn" title="Simulate standing at Plaza of La Nave">🏢 STAND AT LA NAVE</button>
+        <button id="loc-ibba" class="loc-btn" title="Simulate standing at Officine Ibba">☕ STAND AT IBBA</button>
       </div>
     </div>
 
-    <!-- Reticle for placement feedback -->
+    <!-- Guidance HUD -->
     <div id="placement-guide" class="guide-box">
-      <div class="crosshair"></div>
-      <p id="guide-text">Look towards Santa Maria delle Mole for the UFO or ground for Monolith</p>
+      <p id="guide-text">Look towards Santa Maria delle Mole for the UFO or La Nave plaza for the Monolith</p>
+    </div>
+
+    <!-- Sizing Control Panel -->
+    <div id="size-control-panel">
+      <div class="size-header">
+        <span class="size-title">OBJECT RESIZING: <span id="active-scale-target">MONOLITH</span></span>
+        <div class="size-tabs">
+          <button id="tab-monolith" class="size-tab-btn active">MONOLITH</button>
+          <button id="tab-ufo" class="size-tab-btn">UFO</button>
+        </div>
+      </div>
+      <div class="slider-row">
+        <input type="range" id="size-slider" class="scale-slider" min="0.2" max="4.0" step="0.05" value="1.0">
+        <span id="size-val-label" class="scale-value-label">1.0x (12m)</span>
+      </div>
+      <div class="size-presets" id="presets-container">
+        <!-- Injected dynamically in app.js for Monolith or UFO -->
+      </div>
     </div>
 
     <!-- Sci-fi Controls Footer -->
@@ -56,14 +82,14 @@
       <button id="btn-sound" class="hud-btn" title="Toggle Alien Audio Hum">
         <span class="btn-icon">🔊</span> AUDIO HUM
       </button>
-      <button id="btn-ufo" class="hud-btn" title="Toggle UFO / Monolith view">
-        <span class="btn-icon">🛸</span> UFO AT IBBA
+      <button id="btn-occlusion" class="hud-btn active" title="Toggle Foreground Occlusion">
+        <span class="btn-icon">👁️</span> OCCLUSION: ON
       </button>
-      <button id="btn-scale" class="hud-btn" title="Toggle Scale">
-        <span class="btn-icon">⚡</span> SCALE: GIANT
+      <button id="btn-focus-toggle" class="hud-btn" title="Focus Camera on UFO / Monolith">
+        <span class="btn-icon">🎯</span> FOCUS: LA NAVE
       </button>
-      <button id="btn-recenter" class="hud-btn" title="Recenter in front of you">
-        <span class="btn-icon">🎯</span> RECENTER
+      <button id="btn-recenter" class="hud-btn" title="Re-anchor in front of you">
+        <span class="btn-icon">🔄</span> RECENTER
       </button>
     </div>
   </div>
@@ -72,15 +98,16 @@
   <div id="start-overlay" class="overlay">
     <div class="overlay-card">
       <div class="alien-glyph">▲ ◈ 🛸 ◈ ▲</div>
-      <h1>DUAL ANOMALY DETECTED</h1>
+      <h1>GEOSPATIAL ANOMALY DETECTED</h1>
       <p class="location-tag">FRATTOCCHIE & SANTA MARIA DELLE MOLE</p>
-      <p class="description">
+      <div class="description">
         • <strong>Alien Monolith:</strong> Plaza of Centro Commerciale La Nave (Frattocchie)<br>
-        • <strong>Mothership UFO:</strong> Hovering above Officine Ibba (Santa Maria delle Mole)
-      </p>
+        • <strong>Mothership UFO:</strong> Hovering above Officine Ibba (Via Silvio Pellico 95)<br><br>
+        <em>Features: Photorealistic PBR metallic shaders, live GPS geolocalization, foreground occlusion, and size adjustment.</em>
+      </div>
       <button id="start-btn" class="glow-button">INITIALIZE AR SCAN</button>
       <div class="engine-badge">
-        <span>⚡ 8thwall.org WebAR + GPS Geospatial Compass Tracking</span>
+        <span>⚡ 8thwall.org WebAR • True Geodesic Coordinates</span>
       </div>
     </div>
   </div>
@@ -89,19 +116,17 @@
     8th Wall A-Frame Scene
     - xrconfig="delayRun: true": Delays camera start until user taps "INITIALIZE AR SCAN"
     - xrweb: Starts camera stream and SLAM world tracking
-    - xrextras-loading: Standard loading indicator
-    - xrextras-runtime-error: Displays permissions/hardware errors
   -->
   <a-scene
     xrconfig="delayRun: true"
     xrweb
     xrextras-loading
     xrextras-runtime-error
-    renderer="colorManagement: true; physicallyCorrectLights: true; exposure: 1.2;"
+    renderer="colorManagement: true; physicallyCorrectLights: true; exposure: 1.35; toneMapping: ACESFilmic;"
     monolith-interaction>
 
     <a-assets>
-      <!-- Procedurally generated textures or shaders handled in app.js -->
+      <!-- Procedurally generated textures & PBR shaders handled in app.js -->
     </a-assets>
 
     <!-- AR Camera Rig -->
@@ -112,92 +137,92 @@
       cursor="fuse: false; rayOrigin: mouse;">
     </a-camera>
 
-    <!-- Ambient & Atmospheric Alien Lighting -->
-    <a-entity light="type: ambient; color: #334455; intensity: 0.9;"></a-entity>
+    <!-- Photorealistic Atmospheric Lighting Rig -->
+    <!-- Sky / Ambient Cool Skylight -->
+    <a-entity light="type: hemisphere; skyColor: #64748b; groundColor: #1e293b; intensity: 1.1;"></a-entity>
     
-    <!-- Directional Sun Light -->
+    <!-- Primary Directional Sun Light casting crisp contact shadows -->
     <a-entity
       id="sun-light"
-      light="type: directional; color: #ffffff; intensity: 1.8; castShadow: true;"
-      position="5 15 8">
+      light="type: directional; color: #fff7ed; intensity: 2.2; castShadow: true; shadowMapWidth: 2048; shadowMapHeight: 2048; shadowBias: -0.0001;"
+      position="8 20 12">
     </a-entity>
 
-    <!-- Ominous Cold Rim Light for Alien Sheen -->
+    <!-- Cold Atmospheric Rim Light for Alien Metallic Sheen -->
     <a-entity
-      light="type: directional; color: #00d9ff; intensity: 1.2;"
-      position="-8 10 -10">
+      light="type: directional; color: #00d9ff; intensity: 1.4;"
+      position="-12 12 -15">
     </a-entity>
 
-    <!-- Shadow-receiving ground plane for realistic AR occlusion & shadows -->
+    <!-- Warm Pavement Bounce Light -->
+    <a-entity
+      light="type: directional; color: #fed7aa; intensity: 0.6;"
+      position="0 -5 5">
+    </a-entity>
+
+    <!-- Ground Occlusion & Shadow Plane -->
     <a-entity
       id="ground"
-      geometry="primitive: plane; width: 200; height: 200;"
+      geometry="primitive: plane; width: 300; height: 300;"
       rotation="-90 0 0"
-      material="shader: shadow; opacity: 0.6;">
+      material="shader: shadow; opacity: 0.75;"
+      shadow="receive: true;">
     </a-entity>
 
     <!-- 
-      ANOMALY 1: ALIEN MONOLITH (Centro Commerciale La Nave - Frattocchie)
-      Proportions: 1 : 4 : 9 (Arthur C. Clarke / 2001: A Space Odyssey classic alien monolith ratio)
-      Default position: 15 meters in front of viewer at La Nave
+      ANOMALY 1: PHOTOREALISTIC ALIEN MONOLITH
+      Positioned via GPS coordinates relative to Centro Commerciale La Nave (Frattocchie)
     -->
     <a-entity id="monolith-rig" position="0 0 -15">
-      <!-- Monolith Main Body -->
-      <a-entity
-        id="monolith-mesh"
-        alien-monolith="width: 3.0; height: 12.0; depth: 0.75;"
-        shadow="receive: true; cast: true;">
-      </a-entity>
+      <!-- Photorealistic Monolith Mesh (Procedural beveled obsidian alloy & PBR shaders) -->
+      <a-entity id="monolith-mesh" alien-monolith shadow="cast: true; receive: true;"></a-entity>
+
+      <!-- Soft Ground Contact Ambient Occlusion Ring -->
+      <a-circle
+        radius="3.2"
+        rotation="-90 0 0"
+        position="0 0.02 0"
+        material="color: #000000; opacity: 0.85; transparent: true;">
+      </a-circle>
 
       <!-- Alien Ground Rune / Electromagnetic Glow Ring -->
       <a-ring
         id="energy-ring"
         color="#00ffe1"
-        radius-inner="2.5"
-        radius-outer="2.8"
+        radius-inner="2.6"
+        radius-outer="2.9"
         rotation="-90 0 0"
         position="0 0.05 0"
-        material="opacity: 0.7; transparent: true; emissive: #00ffe1; emissiveIntensity: 2.0;"
+        material="opacity: 0.8; transparent: true; emissive: #00ffe1; emissiveIntensity: 2.5;"
         animation="property: rotation; to: -90 360 0; dur: 20000; loop: true; easing: linear;">
       </a-ring>
 
-      <!-- Second Concentric Counter-rotating Ring -->
-      <a-ring
-        color="#9d00ff"
-        radius-inner="3.2"
-        radius-outer="3.4"
-        rotation="-90 0 0"
-        position="0 0.04 0"
-        material="opacity: 0.5; transparent: true; emissive: #9d00ff; emissiveIntensity: 1.5;"
-        animation="property: rotation; to: -90 -360 0; dur: 30000; loop: true; easing: linear;">
-      </a-ring>
-
-      <!-- Ground Spot Light illuminating the Monolith upwards -->
+      <!-- Upward Ground Spot illuminating Monolith -->
       <a-entity
-        light="type: spot; color: #00f0ff; intensity: 3.5; distance: 20; penumbra: 0.8; angle: 45;"
-        position="0 0.1 2"
+        light="type: spot; color: #00f0ff; intensity: 4.0; distance: 25; penumbra: 0.8; angle: 50;"
+        position="0 0.1 2.5"
         rotation="-75 0 0">
       </a-entity>
     </a-entity>
 
     <!-- 
-      ANOMALY 2: ALIEN UFO MOTHERSHIP (Officine Ibba - Santa Maria delle Mole)
-      Placed in the sky towards Santa Maria delle Mole / Via Silvio Pellico.
-      Includes rotating plasma ring, dark metallic saucer dome, and downward tractor beam!
+      ANOMALY 2: PHOTOREALISTIC MOTHERSHIP UFO
+      Positioned via GPS coordinates above Officine Ibba (Santa Maria delle Mole)
     -->
-    <a-entity id="ufo-rig" position="-35 30 -55" scale="1.8 1.8 1.8">
+    <a-entity id="ufo-rig" position="-45 35 -65" scale="1.5 1.5 1.5">
+      <!-- Photorealistic UFO Mesh (Multi-tiered titanium hull, rotating plasma ring, command dome) -->
       <a-entity id="ufo-mesh" alien-ufo></a-entity>
 
-      <!-- Downward Tractor Beam Spotlight -->
+      <!-- Downward Volumetric Spotlight Illuminating Ground below UFO -->
       <a-entity
-        light="type: spot; color: #00ffe1; intensity: 6.0; distance: 60; penumbra: 0.6; angle: 40;"
-        position="0 -1 0"
+        light="type: spot; color: #00ffe1; intensity: 7.0; distance: 80; penumbra: 0.6; angle: 45;"
+        position="0 -2 0"
         rotation="90 0 0">
       </a-entity>
 
       <!-- Atmospheric Ambient Glow around the UFO -->
       <a-entity
-        light="type: point; color: #9d00ff; intensity: 3.0; distance: 25;"
+        light="type: point; color: #9d00ff; intensity: 4.5; distance: 35;"
         position="0 2 0">
       </a-entity>
     </a-entity>
