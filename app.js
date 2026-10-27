@@ -721,7 +721,7 @@ AFRAME.registerComponent('monolith-interaction', {
         occlusionBtn.classList.add('active');
         occlusionBtn.innerHTML = '<span class="btn-icon">👁️</span> OCCLUSION: ON';
         ground.setAttribute('material', 'shader: shadow; opacity: 0.75;');
-        scene.renderer.sortObjects = true;
+        if (scene.renderer) scene.renderer.sortObjects = true;
       } else {
         occlusionBtn.classList.remove('active');
         occlusionBtn.innerHTML = '<span class="btn-icon">🚫</span> OCCLUSION: OFF';
@@ -729,39 +729,26 @@ AFRAME.registerComponent('monolith-interaction', {
       }
     });
 
-    // Start / Initialize Experience
-    startBtn.addEventListener('click', async () => {
-      startBtn.disabled = true;
-      startBtn.innerText = 'INITIALIZING SENSORS...';
-
-      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        try {
-          await DeviceOrientationEvent.requestPermission();
-        } catch (e) {
-          console.warn('Device orientation permission:', e);
-        }
-      }
-
-      try {
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          const tempStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'environment' } },
-          });
-          tempStream.getTracks().forEach((t) => t.stop());
-        }
-      } catch (err) {
-        console.warn('Camera request notice:', err);
-      }
-
+    // Start / Initialize Experience - Dismisses overlay instantly
+    startBtn.addEventListener('click', () => {
+      // 1. Immediately dismiss landing page overlay so user is never stuck
       startOverlay.classList.add('hidden');
+
+      // 2. Start extraterrestrial ambient audio hum
       audioSynth.toggle();
       soundBtn.classList.add('active');
 
+      // 3. iOS Safari DeviceOrientation permission
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission().catch((e) => console.warn('Device orientation permission:', e));
+      }
+
+      // 4. Update HUD and launch 8th Wall SLAM & Camera
       if (statusText) statusText.innerText = 'CONNECTING CAMERA...';
       scene.emit('runreality');
       scene.emit('runxr');
 
-      // Default standpoint to La Nave so objects are immediately in view
+      // 5. Default standpoint to La Nave so objects are immediately in view
       setStandpoint('LANAVE');
     });
 
