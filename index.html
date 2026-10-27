@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>Alien Monolith AR | Centro Commerciale La Nave</title>
+  <title>Alien Monolith & UFO AR | La Nave & Officine Ibba</title>
   
   <link rel="stylesheet" href="style.css">
 
@@ -21,7 +21,7 @@
 
   <!-- 
     3. 8th Wall Open Source SLAM Engine Binary (8thwall.org)
-    Loaded after 8-Frame so that window.AFRAME.registerComponent("xrweb") registers properly!
+    Loaded synchronously after 8-Frame so that window.AFRAME.registerComponent("xrweb") registers properly!
   -->
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" data-preload-chunks="slam"></script>
 
@@ -32,17 +32,23 @@
   <!-- Sci-Fi HUD Overlay -->
   <div id="hud-container">
     <div class="hud-header">
-      <div class="hud-target-badge">
-        <span class="pulse-dot"></span>
-        <span class="hud-text">TARGET: LA NAVE CC (FRATTOCCHIE)</span>
+      <div class="hud-top-row">
+        <div class="hud-target-badge">
+          <span class="pulse-dot"></span>
+          <span class="hud-text" id="target-title">TARGET: LA NAVE CC (FRATTOCCHIE)</span>
+        </div>
+        <div class="hud-status" id="xr-status">CALIBRATING CAMERA...</div>
       </div>
-      <div class="hud-status" id="xr-status">CALIBRATING CAMERA...</div>
+      <div class="hud-geo-row">
+        <span>📍 LA NAVE: <span id="dist-lanave" class="hud-geo-tag">CALCULATING...</span></span>
+        <span>🛸 OFFICINE IBBA: <span id="dist-ibba" class="hud-geo-tag">CALCULATING...</span></span>
+      </div>
     </div>
 
     <!-- Reticle for placement feedback -->
     <div id="placement-guide" class="guide-box">
       <div class="crosshair"></div>
-      <p>Aim at ground in front of La Nave & tap to reposition</p>
+      <p id="guide-text">Look towards Santa Maria delle Mole for the UFO or ground for Monolith</p>
     </div>
 
     <!-- Sci-fi Controls Footer -->
@@ -50,7 +56,10 @@
       <button id="btn-sound" class="hud-btn" title="Toggle Alien Audio Hum">
         <span class="btn-icon">🔊</span> AUDIO HUM
       </button>
-      <button id="btn-scale" class="hud-btn" title="Toggle Monolith Scale">
+      <button id="btn-ufo" class="hud-btn" title="Toggle UFO / Monolith view">
+        <span class="btn-icon">🛸</span> UFO AT IBBA
+      </button>
+      <button id="btn-scale" class="hud-btn" title="Toggle Scale">
         <span class="btn-icon">⚡</span> SCALE: GIANT
       </button>
       <button id="btn-recenter" class="hud-btn" title="Recenter in front of you">
@@ -62,15 +71,16 @@
   <!-- Custom Start / Audio Trigger Screen -->
   <div id="start-overlay" class="overlay">
     <div class="overlay-card">
-      <div class="alien-glyph">▲ ◈ ▲</div>
-      <h1>ANOMALY DETECTED</h1>
-      <p class="location-tag">LOCATION: CENTRO COMMERCIALE LA NAVE</p>
+      <div class="alien-glyph">▲ ◈ 🛸 ◈ ▲</div>
+      <h1>DUAL ANOMALY DETECTED</h1>
+      <p class="location-tag">FRATTOCCHIE & SANTA MARIA DELLE MOLE</p>
       <p class="description">
-        A mysterious extraterrestrial monolith has surfaced. Allow camera access and point your device towards the front plaza of La Nave.
+        • <strong>Alien Monolith:</strong> Plaza of Centro Commerciale La Nave (Frattocchie)<br>
+        • <strong>Mothership UFO:</strong> Hovering above Officine Ibba (Santa Maria delle Mole)
       </p>
       <button id="start-btn" class="glow-button">INITIALIZE AR SCAN</button>
       <div class="engine-badge">
-        <span>⚡ Powered by 8thwall.org Open-Source WebAR</span>
+        <span>⚡ 8thwall.org WebAR + GPS Geospatial Compass Tracking</span>
       </div>
     </div>
   </div>
@@ -103,7 +113,7 @@
     </a-camera>
 
     <!-- Ambient & Atmospheric Alien Lighting -->
-    <a-entity light="type: ambient; color: #334455; intensity: 0.8;"></a-entity>
+    <a-entity light="type: ambient; color: #334455; intensity: 0.9;"></a-entity>
     
     <!-- Directional Sun Light -->
     <a-entity
@@ -121,15 +131,15 @@
     <!-- Shadow-receiving ground plane for realistic AR occlusion & shadows -->
     <a-entity
       id="ground"
-      geometry="primitive: plane; width: 100; height: 100;"
+      geometry="primitive: plane; width: 200; height: 200;"
       rotation="-90 0 0"
       material="shader: shadow; opacity: 0.6;">
     </a-entity>
 
     <!-- 
-      Monolith Root Entity (positioned 15 meters in front of the viewer by default)
+      ANOMALY 1: ALIEN MONOLITH (Centro Commerciale La Nave - Frattocchie)
       Proportions: 1 : 4 : 9 (Arthur C. Clarke / 2001: A Space Odyssey classic alien monolith ratio)
-      Giant AR Scale: 3 meters wide, 12 meters high, 0.75 meters deep
+      Default position: 15 meters in front of viewer at La Nave
     -->
     <a-entity id="monolith-rig" position="0 0 -15">
       <!-- Monolith Main Body -->
@@ -167,6 +177,28 @@
         light="type: spot; color: #00f0ff; intensity: 3.5; distance: 20; penumbra: 0.8; angle: 45;"
         position="0 0.1 2"
         rotation="-75 0 0">
+      </a-entity>
+    </a-entity>
+
+    <!-- 
+      ANOMALY 2: ALIEN UFO MOTHERSHIP (Officine Ibba - Santa Maria delle Mole)
+      Placed in the sky towards Santa Maria delle Mole / Via Silvio Pellico.
+      Includes rotating plasma ring, dark metallic saucer dome, and downward tractor beam!
+    -->
+    <a-entity id="ufo-rig" position="-35 30 -55" scale="1.8 1.8 1.8">
+      <a-entity id="ufo-mesh" alien-ufo></a-entity>
+
+      <!-- Downward Tractor Beam Spotlight -->
+      <a-entity
+        light="type: spot; color: #00ffe1; intensity: 6.0; distance: 60; penumbra: 0.6; angle: 40;"
+        position="0 -1 0"
+        rotation="90 0 0">
+      </a-entity>
+
+      <!-- Atmospheric Ambient Glow around the UFO -->
+      <a-entity
+        light="type: point; color: #9d00ff; intensity: 3.0; distance: 25;"
+        position="0 2 0">
       </a-entity>
     </a-entity>
 

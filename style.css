@@ -137,14 +137,36 @@ html, body {
 
 .hud-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 6px;
   background: var(--dark-bg);
   border: 1px solid var(--dark-border);
   border-radius: 8px;
   padding: 10px 14px;
   backdrop-filter: blur(8px);
   pointer-events: auto;
+}
+
+.hud-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hud-geo-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: #94a3b8;
+  border-top: 1px dashed rgba(0, 255, 225, 0.2);
+  padding-top: 5px;
+  margin-top: 2px;
+}
+
+.hud-geo-tag {
+  color: var(--neon-cyan);
+  font-family: monospace;
 }
 
 .hud-target-badge {
@@ -197,8 +219,9 @@ html, body {
 /* Controls Footer */
 .hud-controls {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   justify-content: center;
+  flex-wrap: wrap;
   pointer-events: auto;
 }
 
