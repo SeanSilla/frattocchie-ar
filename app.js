@@ -607,6 +607,15 @@ AFRAME.registerComponent('monolith-interaction', {
     const distIbbaEl = document.getElementById('dist-ibba');
     const guideText = document.getElementById('guide-text');
 
+    // Telemetry & Radar UI Elements
+    const teleCoords = document.getElementById('tele-coords');
+    const teleAcc = document.getElementById('tele-acc');
+    const teleHeading = document.getElementById('tele-heading');
+    const radarDial = document.getElementById('radar-dial');
+    const blipMoro = document.getElementById('blip-moro');
+    const blipLaNave = document.getElementById('blip-lanave');
+    const blipIbba = document.getElementById('blip-ibba');
+
     // Standpoint Buttons
     const locLiveBtn = document.getElementById('loc-live');
     const locMoroBtn = document.getElementById('loc-moro');
@@ -776,6 +785,12 @@ AFRAME.registerComponent('monolith-interaction', {
       initialPinchScale = null;
     });
 
+    // Convert degree to cardinal string (N, NE, E, SE, etc.)
+    const getCardinal = (deg) => {
+      const cardinals = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'N'];
+      return cardinals[Math.round(((deg % 360) / 45)) % 8];
+    };
+
     // True Geospatial Positioning Engine
     const updateGeospatialPositions = () => {
       const userLat = currentCoords.lat;
@@ -796,6 +811,27 @@ AFRAME.registerComponent('monolith-interaction', {
       if (distMoroEl) distMoroEl.innerText = `${formatDistance(distMoro)} (${Math.round(bearingMoro)}°)`;
       if (distLaNaveEl) distLaNaveEl.innerText = `${formatDistance(distLaNave)} (${Math.round(bearingLaNave)}°)`;
       if (distIbbaEl) distIbbaEl.innerText = `${formatDistance(distIbba)} (${Math.round(bearingIbba)}°)`;
+
+      // Update Telemetry Bar
+      if (teleCoords) teleCoords.innerText = `${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
+      if (teleHeading) teleHeading.innerText = `${Math.round(compassHeading)}° ${getCardinal(compassHeading)}`;
+
+      // Update Live Compass Radar Widget
+      if (radarDial) {
+        radarDial.style.transform = `rotate(${-compassHeading}deg)`;
+        const setBlip = (el, bearing) => {
+          if (!el) return;
+          const rad = (bearing - 90) * (Math.PI / 180);
+          const r = 24; // 24px radius from center (34, 34)
+          const x = 34 + Math.cos(rad) * r;
+          const y = 34 + Math.sin(rad) * r;
+          el.style.left = `${x.toFixed(1)}px`;
+          el.style.top = `${y.toFixed(1)}px`;
+        };
+        setBlip(blipMoro, bearingMoro);
+        setBlip(blipLaNave, bearingLaNave);
+        setBlip(blipIbba, bearingIbba);
+      }
 
       // Transform Compass Bearing + Distance to A-Frame AR Coordinates (X, Z)
       const radBearingMoro = ((bearingMoro - compassHeading) * Math.PI) / 180;
@@ -834,31 +870,49 @@ AFRAME.registerComponent('monolith-interaction', {
 
       if (mode === 'LIVE') {
         locLiveBtn.classList.add('active');
-        targetTitle.innerText = 'GEOSPATIAL: LIVE SATELLITE GPS';
-        guideText.innerText = 'Tracking positions using your phone GPS and compass...';
+        targetTitle.innerText = 'SATELLITE GPS ACTIVE';
+        guideText.innerText = 'Tracking real GPS satellites & compass. Walk to see distances change in real time!';
+        if (teleAcc) teleAcc.innerText = 'SEARCHING...';
         if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition((pos) => {
-            currentCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-            updateGeospatialPositions();
-          });
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              currentCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+              if (teleAcc) {
+                const acc = Math.round(pos.coords.accuracy);
+                teleAcc.innerText = `±${acc}m`;
+                teleAcc.className = `telemetry-val ${acc <= 10 ? 'acc-good' : acc <= 25 ? 'acc-med' : 'acc-poor'}`;
+              }
+              if (statusText) statusText.innerText = 'GPS SATELLITES LOCKED';
+              updateGeospatialPositions();
+            },
+            (err) => {
+              console.warn('GPS position error:', err);
+              if (teleAcc) teleAcc.innerText = 'PERMISSION DENIED';
+              if (guideText) guideText.innerText = 'Location access is required for real GPS tracking. Check site permissions.';
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+          );
         }
       } else if (mode === 'MORO') {
         locMoroBtn.classList.add('active');
         currentCoords = { lat: GEO_TARGETS.VIA_ALDO_MORO.lat, lon: GEO_TARGETS.VIA_ALDO_MORO.lon };
-        targetTitle.innerText = 'STANDPOINT: VIA ALDO MORO 52 (FRATTOCCHIE)';
-        guideText.innerText = 'Ancient Roman statue right in front of your house!';
+        targetTitle.innerText = 'STANDPOINT: VIA ALDO MORO 52 (SIMULATED)';
+        guideText.innerText = 'Simulating standing at Via Aldo Moro 52. Statue is 3.5m in front of you!';
+        if (teleAcc) { teleAcc.innerText = 'SIMULATED'; teleAcc.className = 'telemetry-val acc-good'; }
         updateGeospatialPositions();
       } else if (mode === 'LANAVE') {
         locLaNaveBtn.classList.add('active');
         currentCoords = { lat: GEO_TARGETS.LA_NAVE.lat, lon: GEO_TARGETS.LA_NAVE.lon };
-        targetTitle.innerText = 'STANDPOINT: CENTRO COMMERCIALE LA NAVE';
-        guideText.innerText = 'Alien monolith right in front of the shopping mall!';
+        targetTitle.innerText = 'STANDPOINT: LA NAVE CC (SIMULATED)';
+        guideText.innerText = 'Simulating standing at La Nave. Alien monolith right in front of you!';
+        if (teleAcc) { teleAcc.innerText = 'SIMULATED'; teleAcc.className = 'telemetry-val acc-good'; }
         updateGeospatialPositions();
       } else if (mode === 'IBBA') {
         locIbbaBtn.classList.add('active');
         currentCoords = { lat: GEO_TARGETS.OFFICINE_IBBA.lat, lon: GEO_TARGETS.OFFICINE_IBBA.lon };
-        targetTitle.innerText = 'STANDPOINT: OFFICINE IBBA (SANTA MARIA DELLE MOLE)';
-        guideText.innerText = 'Mothership UFO hovering directly above Via Silvio Pellico 95!';
+        targetTitle.innerText = 'STANDPOINT: OFFICINE IBBA (SIMULATED)';
+        guideText.innerText = 'Simulating standing at Officine Ibba. Mothership UFO directly overhead!';
+        if (teleAcc) { teleAcc.innerText = 'SIMULATED'; teleAcc.className = 'telemetry-val acc-good'; }
         updateGeospatialPositions();
       }
     };
@@ -868,7 +922,7 @@ AFRAME.registerComponent('monolith-interaction', {
     locLaNaveBtn.addEventListener('click', () => setStandpoint('LANAVE'));
     locIbbaBtn.addEventListener('click', () => setStandpoint('IBBA'));
 
-    // Live Geolocation Watcher
+    // Live Continuous Geolocation Watcher
     if ('geolocation' in navigator) {
       navigator.geolocation.watchPosition(
         (pos) => {
@@ -877,11 +931,17 @@ AFRAME.registerComponent('monolith-interaction', {
               lat: pos.coords.latitude,
               lon: pos.coords.longitude,
             };
+            if (teleAcc) {
+              const acc = Math.round(pos.coords.accuracy);
+              teleAcc.innerText = `±${acc}m`;
+              teleAcc.className = `telemetry-val ${acc <= 10 ? 'acc-good' : acc <= 25 ? 'acc-med' : 'acc-poor'}`;
+            }
+            if (statusText) statusText.innerText = 'GPS SATELLITES LOCKED';
             updateGeospatialPositions();
           }
         },
         (err) => console.warn('GPS watcher notice:', err),
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 3000 }
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 2000 }
       );
     }
 
@@ -920,12 +980,12 @@ AFRAME.registerComponent('monolith-interaction', {
         DeviceOrientationEvent.requestPermission().catch((e) => console.warn('Orientation permission:', e));
       }
 
-      if (statusText) statusText.innerText = 'CONNECTING CAMERA...';
+      if (statusText) statusText.innerText = 'CONNECTING CAMERA & GPS...';
       scene.emit('runreality');
       scene.emit('runxr');
 
-      // Default standpoint directly to User's House on Via Aldo Moro 52!
-      setStandpoint('MORO');
+      // Default directly to LIVE Satellite GPS tracking!
+      setStandpoint('LIVE');
     });
 
     // Sound toggle

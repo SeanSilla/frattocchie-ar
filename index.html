@@ -35,9 +35,16 @@
       <div class="hud-top-row">
         <div class="hud-target-badge">
           <span class="pulse-dot"></span>
-          <span class="hud-text" id="target-title">GEOSPATIAL AR ACTIVE</span>
+          <span class="hud-text" id="target-title">SATELLITE GPS ACTIVE</span>
         </div>
-        <div class="hud-status" id="xr-status">STANDBY</div>
+        <div class="hud-status" id="xr-status">ACQUIRING SATELLITES...</div>
+      </div>
+
+      <!-- Real-Time Satellite Telemetry Display -->
+      <div class="telemetry-bar">
+        <span class="telemetry-item">🛰️ <span id="tele-coords" class="telemetry-val">WAITING GPS...</span></span>
+        <span class="telemetry-item">🎯 <span id="tele-acc" class="telemetry-val acc-med">±--m</span></span>
+        <span class="telemetry-item">🧭 <span id="tele-heading" class="telemetry-val">---°</span></span>
       </div>
       
       <!-- Live GPS distances to the 3 exact landmarks -->
@@ -53,6 +60,20 @@
         <button id="loc-moro" class="loc-btn" title="Simulate standing at Via Aldo Moro 52">🏠 VIA ALDO MORO 52</button>
         <button id="loc-lanave" class="loc-btn" title="Simulate standing at Plaza of La Nave">🏢 STAND AT LA NAVE</button>
         <button id="loc-ibba" class="loc-btn" title="Simulate standing at Officine Ibba">☕ STAND AT IBBA</button>
+      </div>
+    </div>
+
+    <!-- Mini Radar Widget displaying Compass Heading & Target Blips in Real-Time -->
+    <div class="radar-container" id="radar-widget" title="Live Compass Radar">
+      <div class="radar-sweep"></div>
+      <div class="radar-dial" id="radar-dial">
+        <div class="radar-ring"></div>
+        <div class="radar-cross-h"></div>
+        <div class="radar-cross-v"></div>
+        <div class="radar-north">N</div>
+        <div class="radar-blip blip-moro" id="blip-moro" title="Via Aldo Moro 52"></div>
+        <div class="radar-blip blip-lanave" id="blip-lanave" title="La Nave CC"></div>
+        <div class="radar-blip blip-ibba" id="blip-ibba" title="Officine Ibba"></div>
       </div>
     </div>
 
