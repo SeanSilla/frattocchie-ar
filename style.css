@@ -345,11 +345,55 @@ html, body {
   font-weight: bold;
 }
 
-.location-switcher {
+/* Compass Calibration & Pin Toolbar */
+.calibration-bar {
   display: flex;
-  gap: 3px;
-  margin-top: 5px;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px dashed rgba(0, 255, 225, 0.3);
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin-top: 4px;
+}
+
+.trim-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  outline: none;
+}
+
+.trim-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--neon-gold);
+  cursor: pointer;
+}
+
+.pin-btn {
+  background: rgba(0, 255, 225, 0.2);
+  border: 1px solid var(--neon-cyan);
+  color: #fff;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pin-btn:active {
+  background: var(--neon-cyan);
+  color: #030712;
 }
 
 .loc-btn {

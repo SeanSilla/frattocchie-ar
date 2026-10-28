@@ -622,6 +622,11 @@ AFRAME.registerComponent('monolith-interaction', {
     const locLaNaveBtn = document.getElementById('loc-lanave');
     const locIbbaBtn = document.getElementById('loc-ibba');
 
+    // Calibration & Pin Elements
+    const headingTrimSlider = document.getElementById('heading-trim');
+    const trimValEl = document.getElementById('trim-val');
+    const pinGroundBtn = document.getElementById('btn-pin-ground');
+
     // Sizing Controls
     const tabStatue = document.getElementById('tab-statue');
     const tabMonolith = document.getElementById('tab-monolith');
@@ -643,9 +648,10 @@ AFRAME.registerComponent('monolith-interaction', {
     let occlusionEnabled = true;
 
     // Geospatial State
-    let standpointMode = 'MORO'; // Default to User's house on Via Aldo Moro 52!
+    let standpointMode = 'LIVE'; // Default to LIVE SATELLITE GPS!
     let currentCoords = { lat: GEO_TARGETS.VIA_ALDO_MORO.lat, lon: GEO_TARGETS.VIA_ALDO_MORO.lon };
     let compassHeading = 0;
+    let headingTrim = 0; // Manual trim for phone magnetometer interference (-90° to +90°)
 
     // Presets definitions
     const statuePresets = [
@@ -812,13 +818,15 @@ AFRAME.registerComponent('monolith-interaction', {
       if (distLaNaveEl) distLaNaveEl.innerText = `${formatDistance(distLaNave)} (${Math.round(bearingLaNave)}°)`;
       if (distIbbaEl) distIbbaEl.innerText = `${formatDistance(distIbba)} (${Math.round(bearingIbba)}°)`;
 
+      const effectiveHeading = (compassHeading + headingTrim + 360) % 360;
+
       // Update Telemetry Bar
       if (teleCoords) teleCoords.innerText = `${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
-      if (teleHeading) teleHeading.innerText = `${Math.round(compassHeading)}° ${getCardinal(compassHeading)}`;
+      if (teleHeading) teleHeading.innerText = `${Math.round(effectiveHeading)}° ${getCardinal(effectiveHeading)}`;
 
       // Update Live Compass Radar Widget
       if (radarDial) {
-        radarDial.style.transform = `rotate(${-compassHeading}deg)`;
+        radarDial.style.transform = `rotate(${-effectiveHeading}deg)`;
         const setBlip = (el, bearing) => {
           if (!el) return;
           const rad = (bearing - 90) * (Math.PI / 180);
@@ -834,9 +842,9 @@ AFRAME.registerComponent('monolith-interaction', {
       }
 
       // Transform Compass Bearing + Distance to A-Frame AR Coordinates (X, Z)
-      const radBearingMoro = ((bearingMoro - compassHeading) * Math.PI) / 180;
-      const radBearingLaNave = ((bearingLaNave - compassHeading) * Math.PI) / 180;
-      const radBearingIbba = ((bearingIbba - compassHeading) * Math.PI) / 180;
+      const radBearingMoro = ((bearingMoro - effectiveHeading) * Math.PI) / 180;
+      const radBearingLaNave = ((bearingLaNave - effectiveHeading) * Math.PI) / 180;
+      const radBearingIbba = ((bearingIbba - effectiveHeading) * Math.PI) / 180;
 
       // Distance projection: If user is on-site (< 60m), place right in front of them
       const renderDistMoro = distMoro < 60 ? Math.max(3.5, distMoro) : 25;
@@ -921,6 +929,48 @@ AFRAME.registerComponent('monolith-interaction', {
     locMoroBtn.addEventListener('click', () => setStandpoint('MORO'));
     locLaNaveBtn.addEventListener('click', () => setStandpoint('LANAVE'));
     locIbbaBtn.addEventListener('click', () => setStandpoint('IBBA'));
+
+    // Manual Compass Heading Trim Slider (adjusts for phone magnetic interference)
+    if (headingTrimSlider) {
+      headingTrimSlider.addEventListener('input', (e) => {
+        headingTrim = parseInt(e.target.value);
+        if (trimValEl) trimValEl.innerText = `${headingTrim > 0 ? '+' : ''}${headingTrim}°`;
+        updateGeospatialPositions();
+      });
+    }
+
+    // Precise Ground Pin Button (Drops active object on the exact physical spot in front of you)
+    if (pinGroundBtn) {
+      pinGroundBtn.addEventListener('click', () => {
+        const camObj = camera.object3D;
+        const forward = new THREE.Vector3(0, 0, -1);
+        forward.applyQuaternion(camObj.quaternion);
+        forward.y = 0;
+        forward.normalize();
+
+        if (activeScaleTarget === 'STATUE') {
+          const targetPos = camObj.position.clone().add(forward.multiplyScalar(3.2));
+          statueRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
+          statueRig.object3D.lookAt(camObj.position.x, 0, camObj.position.z);
+          if (guideText) guideText.innerText = '📌 Roman Statue pinned right here on the ground!';
+        } else if (activeScaleTarget === 'MONOLITH') {
+          const targetPos = camObj.position.clone().add(forward.multiplyScalar(12.0));
+          monolithRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
+          monolithRig.object3D.lookAt(camObj.position.x, 0, camObj.position.z);
+          if (guideText) guideText.innerText = '📌 Monolith pinned right here on the ground!';
+        } else {
+          const targetPos = camObj.position.clone().add(forward.multiplyScalar(30.0));
+          targetPos.y = 26;
+          ufoRig.setAttribute('position', `${targetPos.x.toFixed(2)} ${targetPos.y.toFixed(2)} ${targetPos.z.toFixed(2)}`);
+          if (guideText) guideText.innerText = '📌 UFO pinned directly in the sky above!';
+        }
+
+        if (statusText) {
+          statusText.innerText = 'LOCKED TO PHYSICAL GROUND';
+          setTimeout(() => (statusText.innerText = 'SLAM TRACKING ACTIVE'), 2500);
+        }
+      });
+    }
 
     // Live Continuous Geolocation Watcher
     if ('geolocation' in navigator) {

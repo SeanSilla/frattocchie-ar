@@ -61,6 +61,14 @@
         <button id="loc-lanave" class="loc-btn" title="Simulate standing at Plaza of La Nave">🏢 STAND AT LA NAVE</button>
         <button id="loc-ibba" class="loc-btn" title="Simulate standing at Officine Ibba">☕ STAND AT IBBA</button>
       </div>
+
+      <!-- Compass Trim & Pin Precision Toolbar -->
+      <div class="calibration-bar">
+        <span style="font-size: 9px; color: #ffb700;">🧭 COMPASS TRIM:</span>
+        <input type="range" id="heading-trim" class="trim-slider" min="-90" max="90" step="1" value="0" title="Adjust for phone magnetic interference">
+        <span id="trim-val" style="font-size: 9px; min-width: 28px; font-family: monospace;">0°</span>
+        <button id="btn-pin-ground" class="pin-btn" title="Lock active object to this exact pavement spot">📌 PIN HERE</button>
+      </div>
     </div>
 
     <!-- Mini Radar Widget displaying Compass Heading & Target Blips in Real-Time -->
