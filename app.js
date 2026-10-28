@@ -65,7 +65,7 @@ function formatDistance(meters) {
   return (meters / 1000).toFixed(1) + 'km';
 }
 
-// Generate Ancient Carrara Marble PBR Texture with Mineral Veins & SPQR Inscription
+// Generate Authentic Weathered Carrara Marble PBR Texture
 function generateCarraraMarbleTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = 1024;
@@ -73,26 +73,26 @@ function generateCarraraMarbleTexture() {
   const ctx = canvas.getContext('2d');
 
   // Antique ivory marble base
-  ctx.fillStyle = '#f2efe9';
+  ctx.fillStyle = '#f4f1ea';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Subtle marble mineral clouds
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 45; i++) {
     const cx = Math.random() * canvas.width;
     const cy = Math.random() * canvas.height;
-    const grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, 120);
-    grad.addColorStop(0, 'rgba(215, 208, 195, 0.45)');
-    grad.addColorStop(1, 'rgba(242, 239, 233, 0)');
+    const grad = ctx.createRadialGradient(cx, cy, 10, cx, cy, 130);
+    grad.addColorStop(0, 'rgba(210, 202, 188, 0.42)');
+    grad.addColorStop(1, 'rgba(244, 241, 234, 0)');
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(cx, cy, 120, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 130, 0, Math.PI * 2);
     ctx.fill();
   }
 
   // Organic winding marble veins
   ctx.lineWidth = 2;
-  for (let v = 0; v < 8; v++) {
-    ctx.strokeStyle = 'rgba(125, 118, 108, 0.28)';
+  for (let v = 0; v < 10; v++) {
+    ctx.strokeStyle = 'rgba(120, 112, 100, 0.26)';
     ctx.beginPath();
     let x = Math.random() * canvas.width;
     let y = 0;
@@ -105,17 +105,84 @@ function generateCarraraMarbleTexture() {
     ctx.stroke();
   }
 
-  // Classical S·P·Q·R carved Roman inscription
-  ctx.fillStyle = 'rgba(90, 80, 70, 0.45)';
-  ctx.font = 'bold 36px "Times New Roman", Georgia, serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('S · P · Q · R', canvas.width / 2, canvas.height / 2 + 10);
-
   // Micro stone grain
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.02)';
-  for (let i = 0; i < 2000; i++) {
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.025)';
+  for (let i = 0; i < 2500; i++) {
     ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 1.5, 1.5);
   }
+
+  return new THREE.CanvasTexture(canvas);
+}
+
+// Generate Dedicated Imperial SPQR Plaque Texture for the Front of the Pedestal
+function generateRomanPlaqueTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  // Antique bronze/dark porphyry stone background
+  ctx.fillStyle = '#1c1815';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Subtle bronze metal grain
+  for (let i = 0; i < 30; i++) {
+    const grad = ctx.createRadialGradient(
+      Math.random() * canvas.width, Math.random() * canvas.height, 10,
+      Math.random() * canvas.width, Math.random() * canvas.height, 200
+    );
+    grad.addColorStop(0, 'rgba(60, 50, 40, 0.35)');
+    grad.addColorStop(1, 'rgba(28, 24, 21, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  // Double classical Roman border in antiqued gold
+  ctx.strokeStyle = '#c8a44d';
+  ctx.lineWidth = 10;
+  ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+  ctx.lineWidth = 3;
+  ctx.strokeRect(36, 36, canvas.width - 72, canvas.height - 72);
+
+  // Corner rosettes / classical rivets
+  const drawRivet = (x, y) => {
+    ctx.fillStyle = '#e5c158';
+    ctx.beginPath();
+    ctx.arc(x, y, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#6b4d1b';
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  };
+  drawRivet(28, 28);
+  drawRivet(canvas.width - 28, 28);
+  drawRivet(28, canvas.height - 28);
+  drawRivet(canvas.width - 28, canvas.height - 28);
+
+  // Chiseled Gold Lettering: S · P · Q · R
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#f0cf65';
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetX = 3;
+  ctx.shadowOffsetY = 4;
+  ctx.font = 'bold 100px "Times New Roman", Georgia, serif';
+  ctx.fillText('S · P · Q · R', canvas.width / 2, 190);
+
+  // Subtitle: VIA ALDO MORO 52
+  ctx.font = 'bold 44px "Times New Roman", Georgia, serif';
+  ctx.fillStyle = '#d4af37';
+  ctx.fillText('VIA ALDO MORO · LII', canvas.width / 2, 290);
+
+  // Subtitle: FRATTOCCHIE · MARINO
+  ctx.font = 'italic 34px "Times New Roman", Georgia, serif';
+  ctx.fillStyle = '#b89430';
+  ctx.fillText('FRATTOCCHIE · CASTRUM MARINI', canvas.width / 2, 360);
+
+  // Ornamental laurel sprig at bottom
+  ctx.font = '32px serif';
+  ctx.fillText('◈ ─── 🏛️ ─── ◈', canvas.width / 2, 440);
 
   return new THREE.CanvasTexture(canvas);
 }
@@ -219,86 +286,298 @@ AFRAME.registerComponent('ancient-roman-statue', {
   init() {
     const group = new THREE.Group();
     const marbleTexture = generateCarraraMarbleTexture();
+    const plaqueTexture = generateRomanPlaqueTexture();
 
     // Weathered Carrara Marble Material
     const marbleMat = new THREE.MeshStandardMaterial({
-      color: 0xedeae2,
+      color: 0xf0ece4,
       map: marbleTexture,
-      roughness: 0.38,
-      metalness: 0.04,
+      roughness: 0.35,
+      metalness: 0.03,
       bumpMap: marbleTexture,
-      bumpScale: 0.015,
-      envMapIntensity: 0.8,
+      bumpScale: 0.018,
+      envMapIntensity: 0.85,
     });
 
-    // Antique Bronze/Gold Laurel Wreath Material
+    // Darker Weathered Marble for Creases & Shadow Depths
+    const marbleShadowMat = new THREE.MeshStandardMaterial({
+      color: 0xded8cc,
+      map: marbleTexture,
+      roughness: 0.45,
+      metalness: 0.02,
+    });
+
+    // Antique Imperial Bronze / Gold Material for Laurel & Brooch
     const laurelMat = new THREE.MeshStandardMaterial({
-      color: 0xc8a44d,
+      color: 0xd4af37,
       roughness: 0.28,
-      metalness: 0.85,
+      metalness: 0.88,
     });
 
-    // 1. Classical Pedestal Stepped Plinth Base
-    const baseGeo = new THREE.BoxGeometry(0.7, 0.15, 0.7);
+    // Dedicated SPQR Pedestal Front Plaque Material
+    const plaqueMat = new THREE.MeshStandardMaterial({
+      map: plaqueTexture,
+      roughness: 0.32,
+      metalness: 0.45,
+      bumpMap: plaqueTexture,
+      bumpScale: 0.015,
+    });
+
+    // ─────────────────────────────────────────────────────────────
+    // 1. CLASSICAL PEDESTAL PLINTH (With Front SPQR Plaque)
+    // ─────────────────────────────────────────────────────────────
+
+    // Stepped plinth base
+    const baseGeo = new THREE.BoxGeometry(0.72, 0.14, 0.72);
     const baseMesh = new THREE.Mesh(baseGeo, marbleMat);
-    baseMesh.position.y = 0.075;
+    baseMesh.position.y = 0.07;
     baseMesh.castShadow = true;
     baseMesh.receiveShadow = true;
     group.add(baseMesh);
 
-    // 2. Pedestal Column Shaft (with SPQR carved inscription)
-    const shaftGeo = new THREE.BoxGeometry(0.55, 0.7, 0.55);
+    // Pedestal column shaft
+    const shaftGeo = new THREE.BoxGeometry(0.56, 0.72, 0.56);
     const shaftMesh = new THREE.Mesh(shaftGeo, marbleMat);
-    shaftMesh.position.y = 0.5;
+    shaftMesh.position.y = 0.50;
     shaftMesh.castShadow = true;
     shaftMesh.receiveShadow = true;
     group.add(shaftMesh);
 
-    // 3. Classical Capital Plinth Moulding
-    const capGeo = new THREE.BoxGeometry(0.65, 0.1, 0.65);
+    // Dedicated Bronze SPQR Plaque on FRONT FACE (+Z)
+    const plaqueGeo = new THREE.BoxGeometry(0.44, 0.22, 0.02);
+    const plaqueMesh = new THREE.Mesh(plaqueGeo, plaqueMat);
+    plaqueMesh.position.set(0, 0.52, 0.285); // Mounted on front face of the 0.56m shaft (0.56/2 = 0.28)
+    plaqueMesh.castShadow = true;
+    group.add(plaqueMesh);
+
+    // Classical capital plinth moulding
+    const capGeo = new THREE.BoxGeometry(0.66, 0.08, 0.66);
     const capMesh = new THREE.Mesh(capGeo, marbleMat);
-    capMesh.position.y = 0.9;
+    capMesh.position.y = 0.90;
     capMesh.castShadow = true;
     capMesh.receiveShadow = true;
     group.add(capMesh);
 
-    // 4. Statue Torso with Draped Roman Toga
-    const togaGeo = new THREE.CylinderGeometry(0.24, 0.32, 0.65, 24);
-    const togaMesh = new THREE.Mesh(togaGeo, marbleMat);
-    togaMesh.position.y = 1.25;
-    togaMesh.castShadow = true;
-    group.add(togaMesh);
+    // Circular pedestal socle collar
+    const socleGeo = new THREE.CylinderGeometry(0.19, 0.23, 0.07, 24);
+    const socleMesh = new THREE.Mesh(socleGeo, marbleMat);
+    socleMesh.position.y = 0.975;
+    socleMesh.castShadow = true;
+    group.add(socleMesh);
 
-    // Toga Diagonal Fold / Sash
-    const sashGeo = new THREE.TorusGeometry(0.28, 0.06, 12, 24, Math.PI * 1.2);
+    // ─────────────────────────────────────────────────────────────
+    // 2. ROMAN TORSO & DRAPED CLOAK / TOGA (Front vs Back)
+    // ─────────────────────────────────────────────────────────────
+
+    // Broad Roman Imperial Shoulders
+    const shouldersGeo = new THREE.BoxGeometry(0.62, 0.16, 0.26);
+    const shouldersMesh = new THREE.Mesh(shouldersGeo, marbleMat);
+    shouldersMesh.position.set(0, 1.28, 0);
+    shouldersMesh.castShadow = true;
+    group.add(shouldersMesh);
+
+    // Anatomical Torso Core (Tapered oval chest)
+    const torsoGeo = new THREE.CylinderGeometry(0.23, 0.28, 0.52, 24);
+    const torsoMesh = new THREE.Mesh(torsoGeo, marbleMat);
+    torsoMesh.position.set(0, 1.22, 0);
+    torsoMesh.scale.set(1.15, 1.0, 0.85); // Wider in X, shallower in Z
+    torsoMesh.castShadow = true;
+    group.add(torsoMesh);
+
+    // BACK CLOAK DRAPE (-Z face): Clearly establishes the rear of the statue!
+    const backCloakGeo = new THREE.BoxGeometry(0.50, 0.54, 0.07);
+    const backCloakMesh = new THREE.Mesh(backCloakGeo, marbleShadowMat);
+    backCloakMesh.position.set(0, 1.20, -0.13); // Centered on -Z (rear)
+    backCloakMesh.castShadow = true;
+    group.add(backCloakMesh);
+
+    // Back Cloak Vertical Folds
+    for (let f = -0.18; f <= 0.18; f += 0.09) {
+      const foldGeo = new THREE.CylinderGeometry(0.02, 0.03, 0.50, 8);
+      const foldMesh = new THREE.Mesh(foldGeo, marbleMat);
+      foldMesh.position.set(f, 1.20, -0.16);
+      foldMesh.castShadow = true;
+      group.add(foldMesh);
+    }
+
+    // FRONT CHEST TOGA DRAPES (+Z face): Diagonal cascading Roman folds
+    const sashGeo = new THREE.TorusGeometry(0.27, 0.055, 12, 24, Math.PI * 1.15);
     const sashMesh = new THREE.Mesh(sashGeo, marbleMat);
-    sashMesh.position.set(0, 1.35, 0.05);
-    sashMesh.rotation.set(0.4, 0.2, -0.6);
+    sashMesh.position.set(0, 1.32, 0.06);
+    sashMesh.rotation.set(0.35, 0.15, -0.58);
     sashMesh.castShadow = true;
     group.add(sashMesh);
 
-    // 5. Classical Roman Bust / Head
-    const headGeo = new THREE.SphereGeometry(0.16, 24, 20);
-    const headMesh = new THREE.Mesh(headGeo, marbleMat);
-    headMesh.position.set(0, 1.68, 0);
-    headMesh.scale.set(0.9, 1.15, 0.95);
-    headMesh.castShadow = true;
-    group.add(headMesh);
+    const sashGeo2 = new THREE.TorusGeometry(0.24, 0.045, 12, 24, Math.PI * 1.05);
+    const sashMesh2 = new THREE.Mesh(sashGeo2, marbleMat);
+    sashMesh2.position.set(-0.02, 1.18, 0.08);
+    sashMesh2.rotation.set(0.38, 0.12, -0.52);
+    sashMesh2.castShadow = true;
+    group.add(sashMesh2);
 
-    // Stoic Roman nose & brow ridge
-    const noseGeo = new THREE.ConeGeometry(0.035, 0.08, 8);
-    const noseMesh = new THREE.Mesh(noseGeo, marbleMat);
-    noseMesh.position.set(0, 1.66, 0.15);
-    noseMesh.rotation.x = Math.PI / 2;
-    group.add(noseMesh);
+    // Imperial Golden Fibula Brooch (pinned on front right shoulder)
+    const fibulaGeo = new THREE.CylinderGeometry(0.042, 0.042, 0.022, 16);
+    const fibulaMesh = new THREE.Mesh(fibulaGeo, laurelMat);
+    fibulaMesh.position.set(0.21, 1.36, 0.09);
+    fibulaMesh.rotation.x = Math.PI / 2;
+    fibulaMesh.castShadow = true;
+    group.add(fibulaMesh);
 
-    // 6. Classical Roman Laurel Wreath (Corona Triumphalis)
-    const wreathGeo = new THREE.TorusGeometry(0.165, 0.025, 8, 24);
+    // ─────────────────────────────────────────────────────────────
+    // 3. SCULPTED ROMAN HEAD & FACIAL ANATOMY (+Z Face)
+    // ─────────────────────────────────────────────────────────────
+
+    // Neck
+    const neckGeo = new THREE.CylinderGeometry(0.10, 0.125, 0.16, 20);
+    const neckMesh = new THREE.Mesh(neckGeo, marbleMat);
+    neckMesh.position.set(0, 1.48, 0.01);
+    neckMesh.castShadow = true;
+    group.add(neckMesh);
+
+    // Skull / Cranium (Anatomical oval)
+    const skullGeo = new THREE.SphereGeometry(0.155, 24, 20);
+    const skullMesh = new THREE.Mesh(skullGeo, marbleMat);
+    skullMesh.position.set(0, 1.68, 0);
+    skullMesh.scale.set(0.92, 1.14, 0.96);
+    skullMesh.castShadow = true;
+    group.add(skullMesh);
+
+    // Sculpted Strong Roman Jaw & Firm Chin (+Z face)
+    const chinGeo = new THREE.BoxGeometry(0.095, 0.065, 0.085);
+    const chinMesh = new THREE.Mesh(chinGeo, marbleMat);
+    chinMesh.position.set(0, 1.545, 0.115);
+    chinMesh.rotation.x = 0.25;
+    chinMesh.castShadow = true;
+    group.add(chinMesh);
+
+    // Jawline left & right
+    const jawL = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.07, 0.10), marbleMat);
+    jawL.position.set(-0.065, 1.575, 0.06);
+    jawL.rotation.set(0.2, 0.35, -0.2);
+    group.add(jawL);
+
+    const jawR = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.07, 0.10), marbleMat);
+    jawR.position.set(0.065, 1.575, 0.06);
+    jawR.rotation.set(0.2, -0.35, 0.2);
+    group.add(jawR);
+
+    // Classical Stoic Brow Ridge & Forehead (+Z face)
+    const browGeo = new THREE.BoxGeometry(0.15, 0.038, 0.06);
+    const browMesh = new THREE.Mesh(browGeo, marbleMat);
+    browMesh.position.set(0, 1.725, 0.13);
+    browMesh.castShadow = true;
+    group.add(browMesh);
+
+    // Deep-Set Carved Classical Eyes & Eyelids (+Z face)
+    const eyeGeo = new THREE.SphereGeometry(0.022, 14, 14);
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0xe2ded4, roughness: 0.25 });
+    
+    // Left eye
+    const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+    eyeL.position.set(-0.052, 1.70, 0.142);
+    group.add(eyeL);
+
+    // Right eye
+    const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+    eyeR.position.set(0.052, 1.70, 0.142);
+    group.add(eyeR);
+
+    // Prominent Aquiline Roman Nose (+Z face)
+    // Nasal bridge:
+    const bridgeGeo = new THREE.BoxGeometry(0.032, 0.075, 0.048);
+    const bridgeMesh = new THREE.Mesh(bridgeGeo, marbleMat);
+    bridgeMesh.position.set(0, 1.665, 0.168);
+    bridgeMesh.rotation.x = -0.15;
+    bridgeMesh.castShadow = true;
+    group.add(bridgeMesh);
+
+    // Sharp sculpted nasal tip & nostrils:
+    const tipGeo = new THREE.ConeGeometry(0.024, 0.046, 8);
+    const tipMesh = new THREE.Mesh(tipGeo, marbleMat);
+    tipMesh.position.set(0, 1.625, 0.188);
+    tipMesh.rotation.x = Math.PI / 2;
+    tipMesh.castShadow = true;
+    group.add(tipMesh);
+
+    // Classical Sculpted Lips & Mouth (+Z face)
+    const upperLip = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.018, 0.028), marbleMat);
+    upperLip.position.set(0, 1.585, 0.148);
+    group.add(upperLip);
+
+    const lowerLip = new THREE.Mesh(new THREE.BoxGeometry(0.056, 0.020, 0.026), marbleMat);
+    lowerLip.position.set(0, 1.562, 0.144);
+    group.add(lowerLip);
+
+    // Sculpted Left & Right Ears (±X sides)
+    const earGeo = new THREE.BoxGeometry(0.025, 0.07, 0.045);
+    const earL = new THREE.Mesh(earGeo, marbleMat);
+    earL.position.set(-0.145, 1.67, 0.01);
+    earL.rotation.y = 0.2;
+    group.add(earL);
+
+    const earR = new THREE.Mesh(earGeo, marbleMat);
+    earR.position.set(0.145, 1.67, 0.01);
+    earR.rotation.y = -0.2;
+    group.add(earR);
+
+    // Sculpted Augustan Hair Curls (Framing forehead and temples)
+    const curlsPositions = [
+      [-0.07, 1.76, 0.12],
+      [-0.03, 1.77, 0.135],
+      [0.03, 1.77, 0.135],
+      [0.07, 1.76, 0.12],
+      [-0.11, 1.72, 0.09],
+      [0.11, 1.72, 0.09],
+      [-0.13, 1.66, 0.06],
+      [0.13, 1.66, 0.06],
+    ];
+    curlsPositions.forEach(([x, y, z]) => {
+      const curl = new THREE.Mesh(new THREE.SphereGeometry(0.028, 10, 10), marbleMat);
+      curl.position.set(x, y, z);
+      group.add(curl);
+    });
+
+    // ─────────────────────────────────────────────────────────────
+    // 4. CORONA TRIUMPHALIS (Golden Laurel Wreath & Back Ribbon Knot)
+    // ─────────────────────────────────────────────────────────────
+
+    // Laurel Wreath Crown Ring
+    const wreathGeo = new THREE.TorusGeometry(0.162, 0.024, 12, 28);
     const wreathMesh = new THREE.Mesh(wreathGeo, laurelMat);
-    wreathMesh.position.set(0, 1.76, 0);
-    wreathMesh.rotation.x = Math.PI / 2 - 0.2;
+    wreathMesh.position.set(0, 1.76, 0.01);
+    wreathMesh.rotation.x = Math.PI / 2 - 0.18;
     wreathMesh.castShadow = true;
     group.add(wreathMesh);
+
+    // Laurel Leaves around the front forehead
+    for (let a = -1.2; a <= 1.2; a += 0.35) {
+      const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.016, 0.05, 6), laurelMat);
+      const lx = Math.sin(a) * 0.165;
+      const lz = Math.cos(a) * 0.165 + 0.01;
+      leaf.position.set(lx, 1.77 + Math.cos(a) * 0.02, lz);
+      leaf.rotation.set(Math.PI / 2 - 0.2, 0, -a);
+      group.add(leaf);
+    }
+
+    // WREATH RIBBON KNOT AT THE REAR (-Z face):
+    // Confirms the unmistakable back of the head!
+    const knotGeo = new THREE.SphereGeometry(0.032, 10, 10);
+    const knotMesh = new THREE.Mesh(knotGeo, laurelMat);
+    knotMesh.position.set(0, 1.75, -0.155);
+    group.add(knotMesh);
+
+    // Left & Right hanging ribbon tails down the neck (-Z face)
+    const ribbonGeo = new THREE.BoxGeometry(0.024, 0.18, 0.008);
+    
+    const ribL = new THREE.Mesh(ribbonGeo, laurelMat);
+    ribL.position.set(-0.028, 1.64, -0.158);
+    ribL.rotation.set(0.15, 0, 0.12);
+    group.add(ribL);
+
+    const ribR = new THREE.Mesh(ribbonGeo, laurelMat);
+    ribR.position.set(0.028, 1.64, -0.158);
+    ribR.rotation.set(0.15, 0, -0.12);
+    group.add(ribR);
 
     this.el.setObject3D('mesh', group);
   },
@@ -668,6 +947,8 @@ AFRAME.registerComponent('monolith-interaction', {
     const fusionStatusPill = document.getElementById('fusion-status-pill');
     const btnToggleLatch = document.getElementById('btn-toggle-latch');
     const btnRelatch = document.getElementById('btn-relatch');
+    const btnFaceMe = document.getElementById('btn-face-me');
+    const btnTurn180 = document.getElementById('btn-turn-180');
     const latchToast = document.getElementById('latch-toast');
     const toastTitle = document.getElementById('toast-title');
     const toastDesc = document.getElementById('toast-desc');
@@ -679,7 +960,7 @@ AFRAME.registerComponent('monolith-interaction', {
         name: 'Ancient Roman Statue',
         rig: statueRig,
         latched: false,
-        autoGeofenceMeters: 35, // When within 35m of Via Aldo Moro 52
+        autoGeofenceMeters: 55, // Expanded to 55m for reliable auto-latch at Via Aldo Moro 52
         placeDistance: 3.2,
         altitude: 0,
       },
@@ -769,8 +1050,13 @@ AFRAME.registerComponent('monolith-interaction', {
       targetPos.y = target.altitude;
 
       target.rig.setAttribute('position', `${targetPos.x.toFixed(2)} ${targetPos.y.toFixed(2)} ${targetPos.z.toFixed(2)}`);
+      
+      // Explicitly rotate in A-Frame so front (+Z) faces towards the user
       if (target.altitude === 0) {
-        target.rig.object3D.lookAt(camObj.position.x, 0, camObj.position.z);
+        const dx = camObj.position.x - targetPos.x;
+        const dz = camObj.position.z - targetPos.z;
+        const rotYDeg = (Math.atan2(dx, dz) * 180) / Math.PI;
+        target.rig.setAttribute('rotation', `0 ${rotYDeg.toFixed(1)} 0`);
       }
 
       target.latched = true;
@@ -1058,6 +1344,9 @@ AFRAME.registerComponent('monolith-interaction', {
         const statueX = Math.sin(radBearingMoro) * renderDistMoro;
         const statueZ = -Math.cos(radBearingMoro) * renderDistMoro;
         statueRig.setAttribute('position', `${statueX.toFixed(2)} 0 ${statueZ.toFixed(2)}`);
+        // Keep front (+Z) oriented towards user's view
+        const rotYDeg = (Math.atan2(-statueX, -statueZ) * 180) / Math.PI;
+        statueRig.setAttribute('rotation', `0 ${rotYDeg.toFixed(1)} 0`);
       }
 
       if (!latchState.MONOLITH.latched) {
@@ -1186,6 +1475,35 @@ AFRAME.registerComponent('monolith-interaction', {
           statusText.innerText = 'RE-LATCHED TO PHYSICAL GROUND';
           setTimeout(() => (statusText.innerText = 'SLAM TRACKING ACTIVE'), 2000);
         }
+      });
+    }
+
+    // Face Me Button (rotates active object so its front faces camera)
+    if (btnFaceMe) {
+      btnFaceMe.addEventListener('click', () => {
+        const target = latchState[activeScaleTarget];
+        if (!target) return;
+        const camObj = camera.object3D;
+        const pos = target.rig.getAttribute('position') || { x: 0, y: 0, z: 0 };
+        const dx = camObj.position.x - pos.x;
+        const dz = camObj.position.z - pos.z;
+        const rotYDeg = (Math.atan2(dx, dz) * 180) / Math.PI;
+        target.rig.setAttribute('rotation', `0 ${rotYDeg.toFixed(1)} 0`);
+        audioSynth.playLatchChime(true);
+        if (guideText) guideText.innerText = `🔄 ${target.name} turned to face you directly!`;
+      });
+    }
+
+    // Flip 180° Button (instantly rotates active object 180°)
+    if (btnTurn180) {
+      btnTurn180.addEventListener('click', () => {
+        const target = latchState[activeScaleTarget];
+        if (!target) return;
+        const curRot = target.rig.getAttribute('rotation') || { x: 0, y: 0, z: 0 };
+        const newY = ((curRot.y || 0) + 180) % 360;
+        target.rig.setAttribute('rotation', `0 ${newY.toFixed(1)} 0`);
+        audioSynth.playLatchChime(false);
+        if (guideText) guideText.innerText = `↩️ ${target.name} flipped 180°!`;
       });
     }
 
