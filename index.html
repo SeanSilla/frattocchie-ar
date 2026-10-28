@@ -49,9 +49,9 @@
       
       <!-- Live GPS distances to the 3 exact landmarks -->
       <div class="hud-geo-row">
-        <span>🏛️ VIA ALDO MORO: <span id="dist-moro" class="hud-geo-tag">CALCULATING...</span></span>
-        <span>▲ LA NAVE: <span id="dist-lanave" class="hud-geo-tag">CALCULATING...</span></span>
-        <span>🛸 OFF. IBBA: <span id="dist-ibba" class="hud-geo-tag">CALCULATING...</span></span>
+        <span id="geo-tag-moro">🏛️ ALDO MORO: <span id="dist-moro" class="hud-geo-tag">CALCULATING...</span></span>
+        <span id="geo-tag-lanave">▲ LA NAVE: <span id="dist-lanave" class="hud-geo-tag">CALCULATING...</span></span>
+        <span id="geo-tag-ibba">🛸 OFF. IBBA: <span id="dist-ibba" class="hud-geo-tag">CALCULATING...</span></span>
       </div>
 
       <!-- Standpoint Mode Selector: allows testing on-site or simulating standing right there -->
@@ -68,6 +68,29 @@
         <input type="range" id="heading-trim" class="trim-slider" min="-90" max="90" step="1" value="0" title="Adjust for phone magnetic interference">
         <span id="trim-val" style="font-size: 9px; min-width: 28px; font-family: monospace;">0°</span>
         <button id="btn-pin-ground" class="pin-btn" title="Lock active object to this exact pavement spot">📌 PIN HERE</button>
+      </div>
+
+      <!-- Solution A: Geofence Auto-Latch & SLAM Fusion Toolbar -->
+      <div class="fusion-bar" id="fusion-bar">
+        <div class="fusion-status-col">
+          <span class="fusion-label">⚡ SLAM FUSION:</span>
+          <span id="fusion-status-pill" class="fusion-pill unlatched">🛰️ GPS TRACKING</span>
+        </div>
+        <div class="fusion-actions">
+          <button id="btn-toggle-latch" class="fusion-btn" title="Toggle SLAM Ground Latch (Decouple GPS jitter)">🔒 LATCH ON GROUND</button>
+          <button id="btn-relatch" class="fusion-btn secondary" title="Re-anchor to ground right in front of camera">🎯 RE-LATCH</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auto-Latch Notification Toast -->
+    <div id="latch-toast" class="latch-toast hidden">
+      <div class="toast-content">
+        <span class="toast-icon">🔒</span>
+        <div class="toast-text">
+          <div class="toast-title" id="toast-title">AUTO-LATCHED TO PHYSICAL GROUND</div>
+          <div class="toast-desc" id="toast-desc">GPS jitter decoupled. Anchored to 60fps SLAM floor!</div>
+        </div>
       </div>
     </div>
 

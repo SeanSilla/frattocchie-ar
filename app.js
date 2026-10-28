@@ -581,6 +581,43 @@ class AlienAudioSynth {
     }
     return this.isPlaying;
   }
+
+  // Futuristic Chime Feedback on Ground Latch / Unlatch
+  playLatchChime(isLatched) {
+    if (!this.audioCtx) this.init();
+    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume();
+    }
+    if (!this.audioCtx) return;
+    try {
+      const osc = this.audioCtx.createOscillator();
+      const gain = this.audioCtx.createGain();
+      const now = this.audioCtx.currentTime;
+
+      if (isLatched) {
+        // Ascending lock-in chime: 520Hz -> 1040Hz
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.exponentialRampToValueAtTime(1040, now + 0.18);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      } else {
+        // Descending release chime: 880Hz -> 440Hz
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.exponentialRampToValueAtTime(440, now + 0.18);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      }
+
+      osc.connect(gain);
+      gain.connect(this.audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.35);
+    } catch (e) {
+      console.warn('Audio chime notice:', e);
+    }
+  }
 }
 
 // Master Scene Controller
@@ -626,6 +663,152 @@ AFRAME.registerComponent('monolith-interaction', {
     const headingTrimSlider = document.getElementById('heading-trim');
     const trimValEl = document.getElementById('trim-val');
     const pinGroundBtn = document.getElementById('btn-pin-ground');
+
+    // Solution A: SLAM Fusion & Latch Elements
+    const fusionStatusPill = document.getElementById('fusion-status-pill');
+    const btnToggleLatch = document.getElementById('btn-toggle-latch');
+    const btnRelatch = document.getElementById('btn-relatch');
+    const latchToast = document.getElementById('latch-toast');
+    const toastTitle = document.getElementById('toast-title');
+    const toastDesc = document.getElementById('toast-desc');
+
+    // Solution A: Geofence Auto-Latch & SLAM Fusion State
+    const latchState = {
+      STATUE: {
+        key: 'STATUE',
+        name: 'Ancient Roman Statue',
+        rig: statueRig,
+        latched: false,
+        autoGeofenceMeters: 35, // When within 35m of Via Aldo Moro 52
+        placeDistance: 3.2,
+        altitude: 0,
+      },
+      MONOLITH: {
+        key: 'MONOLITH',
+        name: 'Alien Monolith',
+        rig: monolithRig,
+        latched: false,
+        autoGeofenceMeters: 55, // When within 55m of La Nave
+        placeDistance: 12.0,
+        altitude: 0,
+      },
+      UFO: {
+        key: 'UFO',
+        name: 'Mothership UFO',
+        rig: ufoRig,
+        latched: false,
+        autoGeofenceMeters: 85, // When within 85m of Officine Ibba
+        placeDistance: 28.0,
+        altitude: 26.0,
+      },
+    };
+
+    let lastDistMoro = 0;
+    let lastDistLaNave = 0;
+    let lastDistIbba = 0;
+    let toastTimer = null;
+
+    const showLatchToast = (title, desc) => {
+      if (!latchToast) return;
+      if (toastTitle) toastTitle.innerText = title;
+      if (toastDesc) toastDesc.innerText = desc;
+      latchToast.classList.remove('hidden');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        latchToast.classList.add('hidden');
+      }, 4500);
+    };
+
+    const updateLatchUI = () => {
+      const currentTarget = latchState[activeScaleTarget];
+      const isLatched = currentTarget ? currentTarget.latched : false;
+
+      if (fusionStatusPill) {
+        if (isLatched) {
+          fusionStatusPill.className = 'fusion-pill latched';
+          fusionStatusPill.innerHTML = `🔒 ${activeScaleTarget} LATCHED (0 JITTER)`;
+        } else {
+          fusionStatusPill.className = 'fusion-pill unlatched';
+          fusionStatusPill.innerHTML = '🛰️ GPS TRACKING';
+        }
+      }
+
+      if (btnToggleLatch) {
+        if (isLatched) {
+          btnToggleLatch.innerHTML = '🔓 UNLATCH (USE GPS)';
+          btnToggleLatch.classList.add('active');
+        } else {
+          btnToggleLatch.innerHTML = '🔒 LATCH ON GROUND';
+          btnToggleLatch.classList.remove('active');
+        }
+      }
+
+      // Update distance labels in the HUD
+      if (distMoroEl && latchState.STATUE.latched) {
+        distMoroEl.innerHTML = `${formatDistance(lastDistMoro)} <b style="color:#10b981;">(🔒 LATCHED)</b>`;
+      }
+      if (distLaNaveEl && latchState.MONOLITH.latched) {
+        distLaNaveEl.innerHTML = `${formatDistance(lastDistLaNave)} <b style="color:#10b981;">(🔒 LATCHED)</b>`;
+      }
+      if (distIbbaEl && latchState.UFO.latched) {
+        distIbbaEl.innerHTML = `${formatDistance(lastDistIbba)} <b style="color:#10b981;">(🔒 LATCHED)</b>`;
+      }
+    };
+
+    const latchTarget = (targetKey, isAuto = false) => {
+      const target = latchState[targetKey];
+      if (!target) return;
+
+      const camObj = camera.object3D;
+      const forward = new THREE.Vector3(0, 0, -1);
+      forward.applyQuaternion(camObj.quaternion);
+      forward.y = 0;
+      forward.normalize();
+
+      const targetPos = camObj.position.clone().add(forward.multiplyScalar(target.placeDistance));
+      targetPos.y = target.altitude;
+
+      target.rig.setAttribute('position', `${targetPos.x.toFixed(2)} ${targetPos.y.toFixed(2)} ${targetPos.z.toFixed(2)}`);
+      if (target.altitude === 0) {
+        target.rig.object3D.lookAt(camObj.position.x, 0, camObj.position.z);
+      }
+
+      target.latched = true;
+      audioSynth.playLatchChime(true);
+
+      showLatchToast(
+        isAuto ? `GEOFENCE AUTO-LATCH: ${target.name.toUpperCase()}` : `LATCHED: ${target.name.toUpperCase()}`,
+        isAuto
+          ? `Within ${target.autoGeofenceMeters}m geofence! Locked to physical SLAM ground (zero GPS drift).`
+          : `Rigidly locked to physical ground in front of camera (60fps SLAM).`
+      );
+
+      if (guideText) {
+        guideText.innerText = `🔒 ${target.name} locked to ground! Walk around it freely with zero GPS jitter.`;
+      }
+
+      updateLatchUI();
+    };
+
+    const unlatchTarget = (targetKey) => {
+      const target = latchState[targetKey];
+      if (!target) return;
+
+      target.latched = false;
+      audioSynth.playLatchChime(false);
+
+      showLatchToast(
+        `RELEASED: ${target.name.toUpperCase()}`,
+        `Re-enabled continuous GPS satellite & compass tracking.`
+      );
+
+      if (guideText) {
+        guideText.innerText = `🛰️ Tracking ${target.name} via live GPS & compass.`;
+      }
+
+      updateLatchUI();
+      updateGeospatialPositions();
+    };
 
     // Sizing Controls
     const tabStatue = document.getElementById('tab-statue');
@@ -740,6 +923,7 @@ AFRAME.registerComponent('monolith-interaction', {
       tabUfo.classList.remove('active');
       renderPresets();
       updateSliderUI();
+      updateLatchUI();
     });
 
     tabMonolith.addEventListener('click', () => {
@@ -749,6 +933,7 @@ AFRAME.registerComponent('monolith-interaction', {
       tabUfo.classList.remove('active');
       renderPresets();
       updateSliderUI();
+      updateLatchUI();
     });
 
     tabUfo.addEventListener('click', () => {
@@ -758,6 +943,7 @@ AFRAME.registerComponent('monolith-interaction', {
       tabMonolith.classList.remove('active');
       renderPresets();
       updateSliderUI();
+      updateLatchUI();
     });
 
     sizeSlider.addEventListener('input', (e) => {
@@ -814,9 +1000,13 @@ AFRAME.registerComponent('monolith-interaction', {
       const distIbba = calculateDistanceMeters(userLat, userLon, GEO_TARGETS.OFFICINE_IBBA.lat, GEO_TARGETS.OFFICINE_IBBA.lon);
       const bearingIbba = calculateBearing(userLat, userLon, GEO_TARGETS.OFFICINE_IBBA.lat, GEO_TARGETS.OFFICINE_IBBA.lon);
 
-      if (distMoroEl) distMoroEl.innerText = `${formatDistance(distMoro)} (${Math.round(bearingMoro)}°)`;
-      if (distLaNaveEl) distLaNaveEl.innerText = `${formatDistance(distLaNave)} (${Math.round(bearingLaNave)}°)`;
-      if (distIbbaEl) distIbbaEl.innerText = `${formatDistance(distIbba)} (${Math.round(bearingIbba)}°)`;
+      lastDistMoro = distMoro;
+      lastDistLaNave = distLaNave;
+      lastDistIbba = distIbba;
+
+      if (distMoroEl && !latchState.STATUE.latched) distMoroEl.innerText = `${formatDistance(distMoro)} (${Math.round(bearingMoro)}°)`;
+      if (distLaNaveEl && !latchState.MONOLITH.latched) distLaNaveEl.innerText = `${formatDistance(distLaNave)} (${Math.round(bearingLaNave)}°)`;
+      if (distIbbaEl && !latchState.UFO.latched) distIbbaEl.innerText = `${formatDistance(distIbba)} (${Math.round(bearingIbba)}°)`;
 
       const effectiveHeading = (compassHeading + headingTrim + 360) % 360;
 
@@ -841,31 +1031,52 @@ AFRAME.registerComponent('monolith-interaction', {
         setBlip(blipIbba, bearingIbba);
       }
 
+      // --- SOLUTION A: AUTO-LATCH TRIGGER ---
+      // Automatically latch when entering the physical geofence radius
+      if (standpointMode === 'LIVE') {
+        if (!latchState.STATUE.latched && distMoro <= latchState.STATUE.autoGeofenceMeters) {
+          latchTarget('STATUE', true);
+        }
+        if (!latchState.MONOLITH.latched && distLaNave <= latchState.MONOLITH.autoGeofenceMeters) {
+          latchTarget('MONOLITH', true);
+        }
+        if (!latchState.UFO.latched && distIbba <= latchState.UFO.autoGeofenceMeters) {
+          latchTarget('UFO', true);
+        }
+      }
+
       // Transform Compass Bearing + Distance to A-Frame AR Coordinates (X, Z)
       const radBearingMoro = ((bearingMoro - effectiveHeading) * Math.PI) / 180;
       const radBearingLaNave = ((bearingLaNave - effectiveHeading) * Math.PI) / 180;
       const radBearingIbba = ((bearingIbba - effectiveHeading) * Math.PI) / 180;
 
       // Distance projection: If user is on-site (< 60m), place right in front of them
-      const renderDistMoro = distMoro < 60 ? Math.max(3.5, distMoro) : 25;
-      const renderDistLaNave = distLaNave < 80 ? Math.max(8, distLaNave) : 45;
-      const renderDistIbba = distIbba < 100 ? Math.max(15, distIbba) : 80;
+      // ONLY update positions for UNLATCHED objects!
+      // Once latched, 8th Wall SLAM completely owns the rigid coordinate with ZERO jitter!
+      if (!latchState.STATUE.latched) {
+        const renderDistMoro = distMoro < 60 ? Math.max(3.5, distMoro) : 25;
+        const statueX = Math.sin(radBearingMoro) * renderDistMoro;
+        const statueZ = -Math.cos(radBearingMoro) * renderDistMoro;
+        statueRig.setAttribute('position', `${statueX.toFixed(2)} 0 ${statueZ.toFixed(2)}`);
+      }
 
-      const statueX = Math.sin(radBearingMoro) * renderDistMoro;
-      const statueZ = -Math.cos(radBearingMoro) * renderDistMoro;
+      if (!latchState.MONOLITH.latched) {
+        const renderDistLaNave = distLaNave < 80 ? Math.max(8, distLaNave) : 45;
+        const monolithX = Math.sin(radBearingLaNave) * renderDistLaNave;
+        const monolithZ = -Math.cos(radBearingLaNave) * renderDistLaNave;
+        monolithRig.setAttribute('position', `${monolithX.toFixed(2)} 0 ${monolithZ.toFixed(2)}`);
+      }
 
-      const monolithX = Math.sin(radBearingLaNave) * renderDistLaNave;
-      const monolithZ = -Math.cos(radBearingLaNave) * renderDistLaNave;
-
-      const ufoX = Math.sin(radBearingIbba) * renderDistIbba;
-      const ufoZ = -Math.cos(radBearingIbba) * renderDistIbba;
-      const ufoAltitude = distIbba < 100 ? 25 : 38;
-
-      statueRig.setAttribute('position', `${statueX.toFixed(2)} 0 ${statueZ.toFixed(2)}`);
-      monolithRig.setAttribute('position', `${monolithX.toFixed(2)} 0 ${monolithZ.toFixed(2)}`);
-      ufoRig.setAttribute('position', `${ufoX.toFixed(2)} ${ufoAltitude.toFixed(1)} ${ufoZ.toFixed(2)}`);
+      if (!latchState.UFO.latched) {
+        const renderDistIbba = distIbba < 100 ? Math.max(15, distIbba) : 80;
+        const ufoX = Math.sin(radBearingIbba) * renderDistIbba;
+        const ufoZ = -Math.cos(radBearingIbba) * renderDistIbba;
+        const ufoAltitude = distIbba < 100 ? 25 : 38;
+        ufoRig.setAttribute('position', `${ufoX.toFixed(2)} ${ufoAltitude.toFixed(1)} ${ufoZ.toFixed(2)}`);
+      }
 
       ground.setAttribute('position', `0 0 0`);
+      updateLatchUI();
     };
 
     // Location Standpoint Selector
@@ -881,6 +1092,12 @@ AFRAME.registerComponent('monolith-interaction', {
         targetTitle.innerText = 'SATELLITE GPS ACTIVE';
         guideText.innerText = 'Tracking real GPS satellites & compass. Walk to see distances change in real time!';
         if (teleAcc) teleAcc.innerText = 'SEARCHING...';
+
+        // Release any simulated latches so live GPS takes over
+        latchState.STATUE.latched = false;
+        latchState.MONOLITH.latched = false;
+        latchState.UFO.latched = false;
+
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
             (pos) => {
@@ -901,26 +1118,37 @@ AFRAME.registerComponent('monolith-interaction', {
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
           );
         }
+        updateGeospatialPositions();
+        updateLatchUI();
       } else if (mode === 'MORO') {
         locMoroBtn.classList.add('active');
         currentCoords = { lat: GEO_TARGETS.VIA_ALDO_MORO.lat, lon: GEO_TARGETS.VIA_ALDO_MORO.lon };
         targetTitle.innerText = 'STANDPOINT: VIA ALDO MORO 52 (SIMULATED)';
-        guideText.innerText = 'Simulating standing at Via Aldo Moro 52. Statue is 3.5m in front of you!';
+        guideText.innerText = 'Simulating standing at Via Aldo Moro 52. Statue is auto-latched 3.2m on ground!';
         if (teleAcc) { teleAcc.innerText = 'SIMULATED'; teleAcc.className = 'telemetry-val acc-good'; }
+        activeScaleTarget = 'STATUE';
+        tabStatue.click();
+        latchTarget('STATUE', true);
         updateGeospatialPositions();
       } else if (mode === 'LANAVE') {
         locLaNaveBtn.classList.add('active');
         currentCoords = { lat: GEO_TARGETS.LA_NAVE.lat, lon: GEO_TARGETS.LA_NAVE.lon };
         targetTitle.innerText = 'STANDPOINT: LA NAVE CC (SIMULATED)';
-        guideText.innerText = 'Simulating standing at La Nave. Alien monolith right in front of you!';
+        guideText.innerText = 'Simulating standing at La Nave. Alien monolith is auto-latched 12m on plaza!';
         if (teleAcc) { teleAcc.innerText = 'SIMULATED'; teleAcc.className = 'telemetry-val acc-good'; }
+        activeScaleTarget = 'MONOLITH';
+        tabMonolith.click();
+        latchTarget('MONOLITH', true);
         updateGeospatialPositions();
       } else if (mode === 'IBBA') {
         locIbbaBtn.classList.add('active');
         currentCoords = { lat: GEO_TARGETS.OFFICINE_IBBA.lat, lon: GEO_TARGETS.OFFICINE_IBBA.lon };
         targetTitle.innerText = 'STANDPOINT: OFFICINE IBBA (SIMULATED)';
-        guideText.innerText = 'Simulating standing at Officine Ibba. Mothership UFO directly overhead!';
+        guideText.innerText = 'Simulating standing at Officine Ibba. Mothership UFO is auto-latched overhead!';
         if (teleAcc) { teleAcc.innerText = 'SIMULATED'; teleAcc.className = 'telemetry-val acc-good'; }
+        activeScaleTarget = 'UFO';
+        tabUfo.click();
+        latchTarget('UFO', true);
         updateGeospatialPositions();
       }
     };
@@ -939,36 +1167,33 @@ AFRAME.registerComponent('monolith-interaction', {
       });
     }
 
+    // Solution A: Toggle Latch & Re-Latch Toolbar Buttons
+    if (btnToggleLatch) {
+      btnToggleLatch.addEventListener('click', () => {
+        const target = latchState[activeScaleTarget];
+        if (target.latched) {
+          unlatchTarget(activeScaleTarget);
+        } else {
+          latchTarget(activeScaleTarget, false);
+        }
+      });
+    }
+
+    if (btnRelatch) {
+      btnRelatch.addEventListener('click', () => {
+        latchTarget(activeScaleTarget, false);
+        if (statusText) {
+          statusText.innerText = 'RE-LATCHED TO PHYSICAL GROUND';
+          setTimeout(() => (statusText.innerText = 'SLAM TRACKING ACTIVE'), 2000);
+        }
+      });
+    }
+
     // Precise Ground Pin Button (Drops active object on the exact physical spot in front of you)
     if (pinGroundBtn) {
       pinGroundBtn.addEventListener('click', () => {
-        const camObj = camera.object3D;
-        const forward = new THREE.Vector3(0, 0, -1);
-        forward.applyQuaternion(camObj.quaternion);
-        forward.y = 0;
-        forward.normalize();
-
-        if (activeScaleTarget === 'STATUE') {
-          const targetPos = camObj.position.clone().add(forward.multiplyScalar(3.2));
-          statueRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
-          statueRig.object3D.lookAt(camObj.position.x, 0, camObj.position.z);
-          if (guideText) guideText.innerText = '📌 Roman Statue pinned right here on the ground!';
-        } else if (activeScaleTarget === 'MONOLITH') {
-          const targetPos = camObj.position.clone().add(forward.multiplyScalar(12.0));
-          monolithRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
-          monolithRig.object3D.lookAt(camObj.position.x, 0, camObj.position.z);
-          if (guideText) guideText.innerText = '📌 Monolith pinned right here on the ground!';
-        } else {
-          const targetPos = camObj.position.clone().add(forward.multiplyScalar(30.0));
-          targetPos.y = 26;
-          ufoRig.setAttribute('position', `${targetPos.x.toFixed(2)} ${targetPos.y.toFixed(2)} ${targetPos.z.toFixed(2)}`);
-          if (guideText) guideText.innerText = '📌 UFO pinned directly in the sky above!';
-        }
-
-        if (statusText) {
-          statusText.innerText = 'LOCKED TO PHYSICAL GROUND';
-          setTimeout(() => (statusText.innerText = 'SLAM TRACKING ACTIVE'), 2500);
-        }
+        latchTarget(activeScaleTarget, false);
+        if (guideText) guideText.innerText = `📌 ${latchState[activeScaleTarget].name} pinned to ground & latched to SLAM!`;
       });
     }
 
@@ -1053,78 +1278,48 @@ AFRAME.registerComponent('monolith-interaction', {
     // Cycle Focus between Statue, Monolith, and UFO
     let currentFocus = 'STATUE';
     focusBtn.addEventListener('click', () => {
-      const camObj = camera.object3D;
-      const forward = new THREE.Vector3(0, 0, -1);
-      forward.applyQuaternion(camObj.quaternion);
-
       if (currentFocus === 'STATUE') {
         currentFocus = 'MONOLITH';
         focusBtn.innerHTML = '<span class="btn-icon">▲</span> FOCUS: LA NAVE';
         guideText.innerText = 'Focusing on Alien Monolith (Centro Commerciale La Nave)';
-        const targetPos = camObj.position.clone().add(forward.multiplyScalar(15));
-        monolithRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
+        tabMonolith.click();
+        if (standpointMode !== 'LIVE') {
+          latchTarget('MONOLITH', true);
+        }
       } else if (currentFocus === 'MONOLITH') {
         currentFocus = 'UFO';
         focusBtn.innerHTML = '<span class="btn-icon">🛸</span> FOCUS: UFO';
         guideText.innerText = 'Focusing on Mothership UFO above Santa Maria delle Mole';
-        const targetPos = camObj.position.clone().add(forward.multiplyScalar(35));
-        targetPos.y = 26;
-        ufoRig.setAttribute('position', `${targetPos.x.toFixed(2)} ${targetPos.y.toFixed(2)} ${targetPos.z.toFixed(2)}`);
+        tabUfo.click();
+        if (standpointMode !== 'LIVE') {
+          latchTarget('UFO', true);
+        }
       } else {
         currentFocus = 'STATUE';
         focusBtn.innerHTML = '<span class="btn-icon">🏛️</span> FOCUS: STATUE';
         guideText.innerText = 'Focusing on Ancient Roman Statue in front of Via Aldo Moro 52';
-        const targetPos = camObj.position.clone().add(forward.multiplyScalar(3.5));
-        statueRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
+        tabStatue.click();
+        if (standpointMode !== 'LIVE') {
+          latchTarget('STATUE', true);
+        }
       }
     });
 
-    // Recenter
+    // Recenter (Latching current object firmly in front of the camera in SLAM space)
     recenterBtn.addEventListener('click', () => {
-      const camObj = camera.object3D;
-      const forward = new THREE.Vector3(0, 0, -1);
-      forward.applyQuaternion(camObj.quaternion);
-      forward.y = 0;
-      forward.normalize();
-
-      if (activeScaleTarget === 'STATUE') {
-        const targetPos = camObj.position.clone().add(forward.multiplyScalar(3.5));
-        statueRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
-        statueRig.object3D.lookAt(camObj.position.x, 0, camObj.position.z);
-      } else if (activeScaleTarget === 'MONOLITH') {
-        const targetPos = camObj.position.clone().add(forward.multiplyScalar(15));
-        monolithRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
-        monolithRig.object3D.lookAt(camObj.position.x, 0, camObj.position.z);
-      } else {
-        const targetPos = camObj.position.clone().add(forward.multiplyScalar(35));
-        targetPos.y = 26;
-        ufoRig.setAttribute('position', `${targetPos.x.toFixed(2)} ${targetPos.y.toFixed(2)} ${targetPos.z.toFixed(2)}`);
-      }
-
+      latchTarget(activeScaleTarget, false);
       if (statusText) {
-        statusText.innerText = 'RECENTERED AT VIEW';
+        statusText.innerText = 'RECENTERED & LATCHED TO SLAM';
         setTimeout(() => (statusText.innerText = 'TRACKING ACTIVE'), 2000);
       }
     });
 
-    // Tap on ground to reposition active object
+    // Tap on ground to reposition active object & latch it to the physical ground
     scene.addEventListener('click', (e) => {
       if (e.target.closest('#hud-container') || e.target.closest('#start-overlay')) {
         return;
       }
-      const camObj = camera.object3D;
-      const forward = new THREE.Vector3(0, 0, -1);
-      forward.applyQuaternion(camObj.quaternion);
-      forward.y = 0;
-      forward.normalize();
-
-      if (activeScaleTarget === 'STATUE') {
-        const targetPos = camObj.position.clone().add(forward.multiplyScalar(3.5));
-        statueRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
-      } else if (activeScaleTarget === 'MONOLITH') {
-        const targetPos = camObj.position.clone().add(forward.multiplyScalar(14));
-        monolithRig.setAttribute('position', `${targetPos.x.toFixed(2)} 0 ${targetPos.z.toFixed(2)}`);
-      }
+      latchTarget(activeScaleTarget, false);
     });
 
     // 8th Wall Events
