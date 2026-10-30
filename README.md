@@ -1,56 +1,39 @@
-# 🛸 Tri-Anomaly Geospatial WebAR - Frattocchie & Santa Maria delle Mole
+# 📍 Precision Red Map Pin AR - Real-World Address WebAR
 
-A photorealistic mobile WebAR experience featuring three distinct anomalies anchored across Marino (Rome), built with **8thwall.org Open-Source WebAR** and **A-Frame / Three.js**:
+A modern mobile WebAR application that places a photorealistic **3D Red Map Pin** directly in physical space on top of any real-world address, landmark, or GPS coordinates, built with **open-source 8thwall.org SLAM**, **A-Frame / Three.js**, and **OpenStreetMap / Google Maps geocoding**.
 
-1. **🏛️ Ancient Roman Statue**: In front of **Via Aldo Moro 52, 00047 Frattocchie (Marino, RM)** (`41.76370° N, 12.60930° E`).
-2. **▲ Alien Dark Monolith**: In the front plaza of **Centro Commerciale La Nave (Frattocchie)** (`41.76714° N, 12.61603° E`).
-3. **🛸 Mothership UFO**: Hovering over **Officine Ibba (Via Silvio Pellico 95, Santa Maria delle Mole)** (`41.77450° N, 12.59720° E`).
-
-Live URL on GitHub Pages: **[https://seansilla.github.io/frattocchie-ar/](https://seansilla.github.io/frattocchie-ar/)**
+Live WebAR App: **[https://seansilla.github.io/frattocchie-ar/](https://seansilla.github.io/frattocchie-ar/)**
 
 ---
 
-## ⚡ The Solution A Architecture: Geofence Auto-Latch & SLAM Fusion
+## 🌟 Key Capabilities
 
-When 8th Wall transitioned to open-source at [8thwall.org](https://8thwall.org), Niantic shut down proprietary cloud accounts and Lightship VPS point-cloud servers. Mobile browser GPS inherently suffers from $\pm 5\text{m}$ to $\pm 15\text{m}$ error radius, and digital magnetometers experience $10^\circ$ to $30^\circ$ magnetic drift from urban infrastructure.
+1. **Search Any Address Worldwide**:
+   - Type any street, building number, landmark, or city (e.g. *Via Aldo Moro 52 Frattocchie*, *Colosseo Roma*, *Times Square NY*).
+   - Instant autocomplete suggestions powered by global geocoding.
+   - Enter raw coordinates directly (e.g. `41.76370, 12.60930`).
+   - Paste **Google Maps URLs** directly (e.g. `https://maps.google.com/?q=41.7637,12.6093`).
 
-To deliver millimeter-accurate, jitter-free AR without paid cloud servers, this project implements **Solution A (Geofence Auto-Latch & SLAM Fusion)**:
+2. **Interactive Map Picker (Google / Open Maps)**:
+   - Tap **`🗺️ MAP PICKER`** to open a live Leaflet map view with CartoDB Voyager tiles.
+   - See your blue GPS location and the red pin marker.
+   - Drag the pin or tap any building/rooftop/street to anchor the 3D pin to that exact physical spot.
 
-```
-[ Long Distance / Travel ] (> 35m - 85m)
-  • Continuous GPS & compass calculate geodesic distance (Haversine) and true bearing.
-  • HUD Telemetry & Rotating Mini-Radar guide you toward the landmark blips.
-  • Horizon projection keeps the 3D entity visually aligned in the far distance.
+3. **Photorealistic 3D Red Map Pin**:
+   - Sculpted 3D teardrop pin with high-gloss red enamel finish, white central medallion, and chrome bevel rings.
+   - Ground contact point with drop shadow and expanding sonar pulse ripples.
+   - Floating 3D billboard label above the pin showing the street name and real-time distance that always faces the camera.
 
-                 │
-                 ▼ (User enters physical arrival geofence)
+4. **Zero-Jitter SLAM Ground Fusion**:
+   - Browser GPS has an inherent drift of $\pm 5\text{m}$ to $\pm 15\text{m}$.
+   - Tap **`🔒 LOCK GROUND`** or step within proximity: the pin locks into 8thwall.org's physical 6-DoF SLAM tracking, decoupling it from raw GPS drift so it stays permanently pinned to that exact doorstep or paving stone at 60 FPS.
 
-[ Near Field / Arrival ] (<= 35m Statue / <= 55m Monolith / <= 85m UFO)
-  • AUTO-LATCH TRIGGERS: Decouples the 3D entity from noisy GPS updates!
-  • Rigidly anchors the entity to 8th Wall's 60 FPS SLAM ground coordinate space in front of the camera.
-  • Plays an ascending futuristic chime and surfaces an on-screen HUD alert.
-  • ZERO JITTER: Walk 360° around the Roman Statue or Monolith with rock-solid physical floor tracking.
-  • Full manual overrides: Tap [🔒 LATCH ON GROUND], [🎯 RE-LATCH], or [🔓 UNLATCH (USE GPS)].
-```
+5. **Off-Screen Directional Guidance**:
+   - If the address is behind you or out of your camera view, an intelligent HUD arrow appears (*"⟵ TURN LEFT 65° TO PIN"* or *"↻ PIN IS BEHIND YOU"*) pointing you right toward the destination.
 
----
-
-## 🌟 Key Features
-
-- **True In-Browser WebAR**: Runs directly in Safari (iOS) and Chrome (Android) without requiring any app download or App Store installation.
-- **Photorealistic PBR Materials**:
-  - **Ancient Roman Statue**: Hand-crafted procedural Carrara marble with organic mineral veins, subtle patina, carved classical `S · P · Q · R` inscription, and marble pedestal.
-  - **Alien Monolith**: $1 : 4 : 9$ Arthur C. Clarke proportions, titanium-obsidian brushed finish, beveled edges, and emissive pulsing runes.
-  - **Mothership UFO**: Multi-tiered saucer with counter-rotating quantum induction ring, glowing reactor core, pulsating tractor beam, and anti-collision strobes.
-- **Built-in Procedural Audio Synthesizer**:
-  - Native **Web Audio API** synthesizes a 55Hz sub-bass alien drone with detuned oscillators and LFO filter modulation.
-  - Includes ascending/descending chime feedback on ground latch and release.
-- **Interactive Sci-Fi HUD**:
-  - **Real-Time Telemetry**: Live latitude/longitude, GPS accuracy radius in meters, and true compass heading.
-  - **Rotating Mini-Radar**: Dynamic sweep showing real-time directional blips for all 3 targets.
-  - **Compass Trim Slider**: Fine-tune heading by $\pm 90^\circ$ to offset vehicle or rebar magnetic interference.
-  - **Sizing Controls & Presets**: Pinch-to-scale + range slider + quick presets (Tabletop, Garden, Monumental, Scout, Cruiser, Mothership).
-  - **Standpoint Simulator**: Switch between `LIVE GPS` (real satellites) and simulated standpoints (`VIA ALDO MORO 52`, `STAND AT LA NAVE`, `STAND AT IBBA`).
+6. **Adjustable Elevation & Scale**:
+   - Tap **`⚙️ ADJUST`** to scale the pin ($0.3\text{x}$ to $5\text{x}$) or elevate it into the sky ($0\text{m}$ ground to $30\text{m}$ beacon).
+   - Standpoint Simulator: Toggle between **`🌐 LIVE GPS`** and **`🏠 AT DESTINATION`** to test the pin from anywhere in the world.
 
 ---
 
@@ -59,20 +42,19 @@ To deliver millimeter-accurate, jitter-free AR without paid cloud servers, this 
 ```
 Frattocchie AR/
 ├── index.html        # Main WebAR experience (8thwall.org SLAM engine binary, A-Frame scene, HUD)
-├── style.css         # Glassmorphism sci-fi HUD, mini-radar, latch alerts & responsive mobile layout
-├── app.js            # Procedural PBR textures, geodesic engine, SLAM auto-latch, Web Audio synth
-├── package.json      # Project metadata
+├── style.css         # Modern Google/Apple Maps frosted glass HUD & responsive layout
+├── app.js            # 3D Red Map Pin geometry, Leaflet map modal, geocoding, geodesic math, SLAM fusion
+├── package.json      # Local dev scripts
 ├── .gitignore        # Git ignore rules
-└── README.md         # Architecture, deployment & testing guide
+└── README.md         # Documentation
 ```
 
 ---
 
-## 📱 How to Use On-Site
+## 📱 How to Use On-Site or from Home
 
-1. Open **[https://seansilla.github.io/frattocchie-ar/](https://seansilla.github.io/frattocchie-ar/)** on your mobile browser (**Safari on iOS** or **Chrome on Android**).
-2. Tap **"INITIALIZE AR SCAN"** and grant camera and location permissions.
-3. Default mode is **LIVE GPS**:
-   - The radar blips and distance indicators guide you toward **Via Aldo Moro 52**, **La Nave**, or **Officine Ibba**.
-   - As soon as you arrive within range, **Auto-Latch** locks the object onto the pavement in front of you with zero drift.
-   - If you are testing indoors or at home, tap any of the standpoint buttons (e.g., `VIA ALDO MORO 52`) or tap `[🔒 LATCH ON GROUND]` to lock the statue or monolith right onto your living room or garden floor!
+1. Open **[https://seansilla.github.io/frattocchie-ar/](https://seansilla.github.io/frattocchie-ar/)** on your phone (Safari on iOS or Chrome on Android).
+2. Tap **"START AR CAMERA SCAN"** and grant camera and location permissions.
+3. In the top search bar, type your destination address or tap **`🗺️ MAP PICKER`** to drop the pin visually.
+4. Follow the live distance indicator, mini radar, and directional arrows.
+5. Tap **`🔒 LOCK GROUND`** or **`📌 PIN HERE`** to anchor the pin to the physical ground with rock-solid SLAM stability.

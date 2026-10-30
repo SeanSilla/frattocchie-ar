@@ -4,9 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title>Alien Monolith, UFO & Roman Statue AR | Frattocchie</title>
+  <meta name="theme-color" content="#ea4335">
+  <title>Precision Map Pin AR | Real-World Address WebAR</title>
   
   <link rel="stylesheet" href="style.css">
+
+  <!-- Leaflet Interactive Map Picker CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
   <!-- 
     1. 8-Frame (8th Wall's specialized A-Frame build)
@@ -14,89 +19,80 @@
   -->
   <script src="//cdn.8thwall.com/web/aframe/8frame-1.5.0.min.js"></script>
 
-  <!-- 
-    2. 8th Wall XRExtras (Runtime error handling & camera coaching)
-  -->
+  <!-- 2. 8th Wall XRExtras (Runtime error handling & camera coaching) -->
   <script src="//cdn.8thwall.com/web/xrextras/xrextras.js"></script>
 
-  <!-- 
-    3. 8th Wall Open Source SLAM Engine Binary (8thwall.org)
-  -->
+  <!-- 3. 8th Wall Open Source SLAM Engine Binary (8thwall.org) -->
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" data-preload-chunks="slam"></script>
 
   <!-- 4. Application Logic -->
   <script src="app.js"></script>
 </head>
 <body>
-  <!-- Sci-Fi HUD Overlay -->
+  <!-- Modern AR HUD Overlay -->
   <div id="hud-container">
-    <!-- Header with Live Geospatial Status & Location Selector -->
-    <div class="hud-header">
-      <div class="hud-top-row">
-        <div class="hud-target-badge">
-          <span class="pulse-dot"></span>
-          <span class="hud-text" id="target-title">SATELLITE GPS ACTIVE</span>
+    
+    <!-- Top Floating Search & Destination Bar -->
+    <div class="top-nav-container">
+      <!-- Search Input Box -->
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          id="address-input" 
+          class="address-input" 
+          placeholder="Search address, landmark, or lat, lon..." 
+          autocomplete="off" 
+          autocorrect="off" 
+          spellcheck="false"
+        />
+        <button id="btn-clear-search" class="clear-btn hidden" title="Clear">✕</button>
+        <button id="btn-search-go" class="search-go-btn" title="Search">FIND</button>
+      </div>
+
+      <!-- Autocomplete Suggestions Dropdown -->
+      <div id="suggestions-dropdown" class="suggestions-dropdown hidden"></div>
+
+      <!-- Active Destination Card -->
+      <div id="destination-card" class="destination-card">
+        <div class="dest-main-row">
+          <div class="dest-pin-icon">📍</div>
+          <div class="dest-info">
+            <div id="dest-title" class="dest-title">Via Aldo Moro, 52</div>
+            <div id="dest-address" class="dest-address">Frattocchie, Marino (RM), Lazio, Italy</div>
+          </div>
+          <button id="btn-open-gmaps" class="gmaps-link-btn" title="Open in Google Maps">
+            <span>🗺️ MAPS</span>
+          </button>
         </div>
-        <div class="hud-status" id="xr-status">ACQUIRING SATELLITES...</div>
-      </div>
 
-      <!-- Real-Time Satellite Telemetry Display -->
-      <div class="telemetry-bar">
-        <span class="telemetry-item">🛰️ <span id="tele-coords" class="telemetry-val">WAITING GPS...</span></span>
-        <span class="telemetry-item">🎯 <span id="tele-acc" class="telemetry-val acc-med">±--m</span></span>
-        <span class="telemetry-item">🧭 <span id="tele-heading" class="telemetry-val">---°</span></span>
-      </div>
-      
-      <!-- Live GPS distances to the 3 exact landmarks -->
-      <div class="hud-geo-row">
-        <span id="geo-tag-moro">🏛️ ALDO MORO: <span id="dist-moro" class="hud-geo-tag">CALCULATING...</span></span>
-        <span id="geo-tag-lanave">▲ LA NAVE: <span id="dist-lanave" class="hud-geo-tag">CALCULATING...</span></span>
-        <span id="geo-tag-ibba">🛸 OFF. IBBA: <span id="dist-ibba" class="hud-geo-tag">CALCULATING...</span></span>
-      </div>
-
-      <!-- Standpoint Mode Selector: allows testing on-site or simulating standing right there -->
-      <div class="location-switcher">
-        <button id="loc-live" class="loc-btn active" title="Use Live Satellite GPS & Compass">🌐 LIVE GPS</button>
-        <button id="loc-moro" class="loc-btn" title="Simulate standing at Via Aldo Moro 52">🏠 VIA ALDO MORO 52</button>
-        <button id="loc-lanave" class="loc-btn" title="Simulate standing at Plaza of La Nave">🏢 STAND AT LA NAVE</button>
-        <button id="loc-ibba" class="loc-btn" title="Simulate standing at Officine Ibba">☕ STAND AT IBBA</button>
-      </div>
-
-      <!-- Compass Trim & Pin Precision Toolbar -->
-      <div class="calibration-bar">
-        <span style="font-size: 9px; color: #ffb700;">🧭 COMPASS TRIM:</span>
-        <input type="range" id="heading-trim" class="trim-slider" min="-90" max="90" step="1" value="0" title="Adjust for phone magnetic interference">
-        <span id="trim-val" style="font-size: 9px; min-width: 28px; font-family: monospace;">0°</span>
-        <button id="btn-pin-ground" class="pin-btn" title="Lock active object to this exact pavement spot">📌 PIN HERE</button>
-      </div>
-
-      <!-- Solution A: Geofence Auto-Latch & SLAM Fusion Toolbar -->
-      <div class="fusion-bar" id="fusion-bar">
-        <div class="fusion-status-col">
-          <span class="fusion-label">⚡ SLAM FUSION:</span>
-          <span id="fusion-status-pill" class="fusion-pill unlatched">🛰️ GPS TRACKING</span>
-        </div>
-        <div class="fusion-actions">
-          <button id="btn-toggle-latch" class="fusion-btn" title="Toggle SLAM Ground Latch (Decouple GPS jitter)">🔒 LATCH ON GROUND</button>
-          <button id="btn-relatch" class="fusion-btn secondary" title="Re-anchor to ground right in front of camera">🎯 RE-LATCH</button>
-          <button id="btn-face-me" class="fusion-btn secondary" title="Rotate object to face your current position">🔄 FACE ME</button>
-          <button id="btn-turn-180" class="fusion-btn secondary" title="Rotate object 180 degrees">↩️ FLIP 180°</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Auto-Latch Notification Toast -->
-    <div id="latch-toast" class="latch-toast hidden">
-      <div class="toast-content">
-        <span class="toast-icon">🔒</span>
-        <div class="toast-text">
-          <div class="toast-title" id="toast-title">AUTO-LATCHED TO PHYSICAL GROUND</div>
-          <div class="toast-desc" id="toast-desc">GPS jitter decoupled. Anchored to 60fps SLAM floor!</div>
+        <!-- Real-Time Geospatial Telemetry Pills -->
+        <div class="dest-metrics-row">
+          <div class="metric-pill distance-pill">
+            <span class="metric-icon">📏</span>
+            <span id="metric-dist" class="metric-val">CALCULATING...</span>
+          </div>
+          <div class="metric-pill bearing-pill">
+            <span class="metric-icon">🧭</span>
+            <span id="metric-bearing" class="metric-val">---°</span>
+          </div>
+          <div class="metric-pill status-pill" id="latch-pill">
+            <span id="latch-pill-text">🛰️ GPS TRACKING</span>
+          </div>
+          <div class="metric-pill gps-pill">
+            <span id="tele-acc" class="metric-val">±--m</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Mini Radar Widget displaying Compass Heading & Target Blips in Real-Time -->
+    <!-- Off-Screen Directional Indicator (Guides user when pin is outside camera FOV) -->
+    <div id="direction-guide" class="direction-guide hidden">
+      <div class="guide-arrow" id="guide-arrow">←</div>
+      <div class="guide-text" id="guide-text">TURN LEFT TO FIND PIN</div>
+    </div>
+
+    <!-- Mini Compass Radar Widget -->
     <div class="radar-container" id="radar-widget" title="Live Compass Radar">
       <div class="radar-sweep"></div>
       <div class="radar-dial" id="radar-dial">
@@ -104,87 +100,159 @@
         <div class="radar-cross-h"></div>
         <div class="radar-cross-v"></div>
         <div class="radar-north">N</div>
-        <div class="radar-blip blip-moro" id="blip-moro" title="Via Aldo Moro 52"></div>
-        <div class="radar-blip blip-lanave" id="blip-lanave" title="La Nave CC"></div>
-        <div class="radar-blip blip-ibba" id="blip-ibba" title="Officine Ibba"></div>
+        <div class="radar-blip" id="radar-pin-blip" title="Red Pin Target"></div>
       </div>
     </div>
 
-    <!-- Guidance HUD -->
-    <div id="placement-guide" class="guide-box">
-      <p id="guide-text">Look around for the Roman Statue (Aldo Moro), Monolith (La Nave), or UFO (Ibba)</p>
+    <!-- Action Toast Alert -->
+    <div id="hud-toast" class="hud-toast hidden">
+      <span class="toast-icon" id="toast-icon">📍</span>
+      <span class="toast-msg" id="toast-msg">Pin placed at target location</span>
     </div>
 
-    <!-- Sizing Control Panel -->
-    <div id="size-control-panel">
-      <div class="size-header">
-        <span class="size-title">RESIZING: <span id="active-scale-target">ROMAN STATUE</span></span>
-        <div class="size-tabs">
-          <button id="tab-statue" class="size-tab-btn active">STATUE</button>
-          <button id="tab-monolith" class="size-tab-btn">MONOLITH</button>
-          <button id="tab-ufo" class="size-tab-btn">UFO</button>
+    <!-- Bottom Controls Floating Toolbar -->
+    <div class="bottom-toolbar">
+      <button id="btn-toggle-map" class="toolbar-btn primary" title="Pick location on interactive map">
+        <span class="btn-icon">🗺️</span>
+        <span class="btn-label">MAP PICKER</span>
+      </button>
+
+      <button id="btn-latch-ground" class="toolbar-btn" title="Lock pin to physical ground with SLAM (zero GPS drift)">
+        <span class="btn-icon" id="latch-icon">🔒</span>
+        <span class="btn-label" id="latch-label">LOCK GROUND</span>
+      </button>
+
+      <button id="btn-pin-feet" class="toolbar-btn" title="Drop red pin right here in front of you">
+        <span class="btn-icon">📌</span>
+        <span class="btn-label">PIN HERE</span>
+      </button>
+
+      <button id="btn-toggle-drawer" class="toolbar-btn" title="Adjust pin size, elevation, and standby mode">
+        <span class="btn-icon">⚙️</span>
+        <span class="btn-label">ADJUST</span>
+      </button>
+    </div>
+
+    <!-- Slide-Up Adjustments Drawer -->
+    <div id="adjust-drawer" class="adjust-drawer hidden">
+      <div class="drawer-header">
+        <span class="drawer-title">PIN & AR CALIBRATION</span>
+        <button id="btn-close-drawer" class="drawer-close-btn">✕</button>
+      </div>
+
+      <div class="drawer-body">
+        <!-- Pin Size Slider -->
+        <div class="drawer-row">
+          <div class="drawer-label-col">
+            <span class="row-label">PIN SCALE:</span>
+            <span id="label-scale" class="row-val">1.0x (1.8m)</span>
+          </div>
+          <input type="range" id="slider-scale" class="drawer-slider" min="0.3" max="5.0" step="0.1" value="1.0">
+        </div>
+
+        <!-- Pin Elevation / Height Slider -->
+        <div class="drawer-row">
+          <div class="drawer-label-col">
+            <span class="row-label">PIN ELEVATION:</span>
+            <span id="label-elevation" class="row-val">Ground (0m)</span>
+          </div>
+          <input type="range" id="slider-elevation" class="drawer-slider" min="0" max="30" step="1" value="0">
+        </div>
+
+        <!-- Compass Trim Slider -->
+        <div class="drawer-row">
+          <div class="drawer-label-col">
+            <span class="row-label">COMPASS TRIM:</span>
+            <span id="label-trim" class="row-val">0°</span>
+          </div>
+          <input type="range" id="slider-trim" class="drawer-slider" min="-90" max="90" step="1" value="0">
+        </div>
+
+        <!-- Quick Standpoint Mode (Live vs Simulated at Destination) -->
+        <div class="drawer-row">
+          <span class="row-label">STANDPOINT MODE:</span>
+          <div class="standpoint-toggle-group">
+            <button id="btn-mode-live" class="mode-toggle-btn active">🌐 LIVE GPS</button>
+            <button id="btn-mode-sim" class="mode-toggle-btn">🏠 AT DESTINATION</button>
+          </div>
+        </div>
+
+        <!-- Quick Coordinates Paste -->
+        <div class="drawer-row">
+          <button id="btn-gps-current" class="quick-action-btn">
+            <span>📍 SET PIN TO MY CURRENT LOCATION</span>
+          </button>
         </div>
       </div>
-      <div class="slider-row">
-        <input type="range" id="size-slider" class="scale-slider" min="0.2" max="4.0" step="0.05" value="1.0">
-        <span id="size-val-label" class="scale-value-label">1.0x (1.8m)</span>
-      </div>
-      <div class="size-presets" id="presets-container">
-        <!-- Injected dynamically in app.js for Statue, Monolith, or UFO -->
+    </div>
+
+    <!-- Interactive Leaflet Map Modal Picker -->
+    <div id="map-modal" class="map-modal hidden">
+      <div class="map-modal-card">
+        <div class="map-modal-header">
+          <div class="map-title-col">
+            <span class="map-modal-title">🗺️ GOOGLE / OPEN MAP PICKER</span>
+            <span class="map-modal-subtitle">Tap anywhere on the map or drag the red pin</span>
+          </div>
+          <button id="btn-close-map" class="map-close-btn">✕</button>
+        </div>
+
+        <!-- Leaflet Map Container -->
+        <div id="leaflet-map" class="leaflet-map-view"></div>
+
+        <div class="map-modal-footer">
+          <div class="picked-coords-box">
+            <span class="coords-label">SELECTED:</span>
+            <span id="map-picked-coords" class="coords-val">41.76370, 12.60930</span>
+          </div>
+          <button id="btn-confirm-map-pin" class="confirm-pin-btn">📍 PLACE PIN AT THIS SPOT</button>
+        </div>
       </div>
     </div>
 
-    <!-- Sci-fi Controls Footer -->
-    <div class="hud-controls">
-      <button id="btn-sound" class="hud-btn" title="Toggle Alien Audio Hum">
-        <span class="btn-icon">🔊</span> AUDIO HUM
-      </button>
-      <button id="btn-occlusion" class="hud-btn active" title="Toggle Foreground Occlusion">
-        <span class="btn-icon">👁️</span> OCCLUSION: ON
-      </button>
-      <button id="btn-focus-toggle" class="hud-btn" title="Cycle Camera Focus">
-        <span class="btn-icon">🎯</span> FOCUS: STATUE
-      </button>
-      <button id="btn-recenter" class="hud-btn" title="Re-anchor current object in front of you">
-        <span class="btn-icon">🔄</span> RECENTER
-      </button>
-    </div>
   </div>
 
-  <!-- Custom Start / Audio Trigger Screen -->
+  <!-- Landing / Start Screen -->
   <div id="start-overlay" class="overlay">
     <div class="overlay-card">
-      <div class="alien-glyph">🏛️ ◈ ▲ ◈ 🛸</div>
-      <h1>TRI-ANOMALY AR MATRIX</h1>
-      <p class="location-tag">FRATTOCCHIE & SANTA MARIA DELLE MOLE</p>
-      <div class="description">
-        • <strong>Ancient Roman Statue:</strong> In front of Via Aldo Moro 52 (Frattocchie)<br>
-        • <strong>Alien Monolith:</strong> Plaza of Centro Commerciale La Nave (Frattocchie)<br>
-        • <strong>Mothership UFO:</strong> Hovering above Officine Ibba (Via Silvio Pellico 95)<br><br>
-        <em>Features: Photorealistic PBR Carrara marble & dark alloys, GPS geolocalization, foreground occlusion, and touch sizing.</em>
+      <div class="pin-splash-icon">📍</div>
+      <h1>PRECISION MAP PIN AR</h1>
+      <p class="tagline">REAL-WORLD AR LOCATION MARKER</p>
+      
+      <div class="feature-box">
+        <div class="feature-item">
+          <span class="f-icon">🔍</span>
+          <span class="f-text"><strong>Search Any Address Worldwide:</strong> Type street, landmark, or paste Google Maps coordinates.</span>
+        </div>
+        <div class="feature-item">
+          <span class="f-icon">📍</span>
+          <span class="f-text"><strong>Photorealistic 3D Red Pin:</strong> Renders directly on top of the address in physical space.</span>
+        </div>
+        <div class="feature-item">
+          <span class="f-icon">🔒</span>
+          <span class="f-text"><strong>Zero-Jitter SLAM Fusion:</strong> Rigidly locks to pavement or ground doorstep with 8thwall.org SLAM.</span>
+        </div>
       </div>
-      <button id="start-btn" class="glow-button">INITIALIZE AR SCAN</button>
+
+      <button id="start-btn" class="glow-button">START AR CAMERA SCAN</button>
+
       <div class="engine-badge">
-        <span>⚡ 8thwall.org WebAR • True Geodesic Coordinates</span>
+        <span>⚡ 8thwall.org WebAR • OpenStreetMap / Google Geocoding Engine</span>
       </div>
     </div>
   </div>
 
   <!-- 
     8th Wall A-Frame Scene
-    - xrconfig="delayRun: true": Delays camera start until user taps "INITIALIZE AR SCAN"
-    - xrweb: Starts camera stream and SLAM world tracking
+    - xrconfig="delayRun: true": Delays camera start until user taps "START AR CAMERA SCAN"
+    - xrweb: Starts camera stream and 6-DoF SLAM world tracking
   -->
   <a-scene
     xrconfig="delayRun: true"
     xrweb
     xrextras-runtime-error
-    renderer="colorManagement: true; physicallyCorrectLights: true; exposure: 1.35; toneMapping: ACESFilmic;"
-    monolith-interaction>
-
-    <a-assets>
-      <!-- Procedurally generated textures & PBR shaders handled in app.js -->
-    </a-assets>
+    renderer="colorManagement: true; physicallyCorrectLights: true; exposure: 1.25; toneMapping: ACESFilmic;"
+    map-pin-controller>
 
     <!-- AR Camera Rig -->
     <a-camera
@@ -194,93 +262,37 @@
       cursor="fuse: false; rayOrigin: mouse;">
     </a-camera>
 
-    <!-- Photorealistic Atmospheric Lighting Rig -->
-    <a-entity light="type: hemisphere; skyColor: #64748b; groundColor: #1e293b; intensity: 1.1;"></a-entity>
+    <!-- Photorealistic Clean Lighting Rig for Glossy Red Pin -->
+    <a-entity light="type: hemisphere; skyColor: #ffffff; groundColor: #334155; intensity: 1.1;"></a-entity>
     
     <!-- Primary Directional Sun Light casting crisp contact shadows -->
     <a-entity
       id="sun-light"
-      light="type: directional; color: #fff7ed; intensity: 2.2; castShadow: true; shadowMapWidth: 2048; shadowMapHeight: 2048; shadowBias: -0.0001;"
-      position="8 20 12">
+      light="type: directional; color: #ffffff; intensity: 2.2; castShadow: true; shadowMapWidth: 2048; shadowMapHeight: 2048; shadowBias: -0.0001;"
+      position="5 15 8">
     </a-entity>
 
-    <!-- Cold Atmospheric Rim Light for Alien Sheen -->
+    <!-- Subtle Fill Light for clean side visibility -->
     <a-entity
-      light="type: directional; color: #00d9ff; intensity: 1.4;"
-      position="-12 12 -15">
+      light="type: directional; color: #f1f5f9; intensity: 0.8;"
+      position="-8 10 -6">
     </a-entity>
 
-    <!-- Warm Mediterranean Bounce Light -->
-    <a-entity
-      light="type: directional; color: #fed7aa; intensity: 0.6;"
-      position="0 -5 5">
-    </a-entity>
-
-    <!-- Ground Occlusion & Shadow Plane -->
+    <!-- Ground Occlusion & Shadow Plane for the Pin Tip -->
     <a-entity
       id="ground"
       geometry="primitive: plane; width: 300; height: 300;"
       rotation="-90 0 0"
-      material="shader: shadow; opacity: 0.75;"
+      material="shader: shadow; opacity: 0.65;"
       shadow="receive: true;">
     </a-entity>
 
     <!-- 
-      ANOMALY 1: ANCIENT ROMAN STATUE (Via Aldo Moro 52, Frattocchie)
-      Pedestal with S.P.Q.R. carved inscription & classical weathered Carrara marble sculpture
+      3D RED MAP PIN RIG
+      The iconic teardrop map pin, ground target rings, and floating label
     -->
-    <a-entity id="statue-rig" position="0 0 -4">
-      <a-entity id="statue-mesh" ancient-roman-statue shadow="cast: true; receive: true;"></a-entity>
-      <a-circle
-        radius="1.2"
-        rotation="-90 0 0"
-        position="0 0.02 0"
-        material="color: #000000; opacity: 0.65; transparent: true;">
-      </a-circle>
-    </a-entity>
-
-    <!-- 
-      ANOMALY 2: PHOTOREALISTIC ALIEN MONOLITH (Centro Commerciale La Nave)
-    -->
-    <a-entity id="monolith-rig" position="0 0 -15">
-      <a-entity id="monolith-mesh" alien-monolith shadow="cast: true; receive: true;"></a-entity>
-      <a-circle
-        radius="3.2"
-        rotation="-90 0 0"
-        position="0 0.02 0"
-        material="color: #000000; opacity: 0.85; transparent: true;">
-      </a-circle>
-      <a-ring
-        id="energy-ring"
-        color="#00ffe1"
-        radius-inner="2.6"
-        radius-outer="2.9"
-        rotation="-90 0 0"
-        position="0 0.05 0"
-        material="opacity: 0.8; transparent: true; emissive: #00ffe1; emissiveIntensity: 2.5;"
-        animation="property: rotation; to: -90 360 0; dur: 20000; loop: true; easing: linear;">
-      </a-ring>
-      <a-entity
-        light="type: spot; color: #00f0ff; intensity: 4.0; distance: 25; penumbra: 0.8; angle: 50;"
-        position="0 0.1 2.5"
-        rotation="-75 0 0">
-      </a-entity>
-    </a-entity>
-
-    <!-- 
-      ANOMALY 3: PHOTOREALISTIC MOTHERSHIP UFO (Officine Ibba - Santa Maria delle Mole)
-    -->
-    <a-entity id="ufo-rig" position="-45 35 -65" scale="1.5 1.5 1.5">
-      <a-entity id="ufo-mesh" alien-ufo></a-entity>
-      <a-entity
-        light="type: spot; color: #00ffe1; intensity: 7.0; distance: 80; penumbra: 0.6; angle: 45;"
-        position="0 -2 0"
-        rotation="90 0 0">
-      </a-entity>
-      <a-entity
-        light="type: point; color: #9d00ff; intensity: 4.5; distance: 35;"
-        position="0 2 0">
-      </a-entity>
+    <a-entity id="pin-rig" position="0 0 -4">
+      <a-entity id="pin-mesh" red-map-pin shadow="cast: true; receive: true;"></a-entity>
     </a-entity>
 
   </a-scene>
