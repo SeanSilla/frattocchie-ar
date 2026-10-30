@@ -539,6 +539,29 @@ canvas.a-canvas {
   color: #94a3b8;
 }
 
+.calib-pill {
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.calib-pill.uncalibrated {
+  border-color: rgba(245, 158, 11, 0.6) !important;
+  color: #f59e0b !important;
+  background: rgba(245, 158, 11, 0.15) !important;
+  animation: pulseCalib 1.5s infinite alternate ease-in-out;
+}
+
+.calib-pill.calibrated {
+  border-color: var(--green-latched) !important;
+  color: var(--green-latched) !important;
+  background: rgba(16, 185, 129, 0.18) !important;
+}
+
+@keyframes pulseCalib {
+  from { border-color: rgba(245, 158, 11, 0.4); box-shadow: 0 0 3px rgba(245, 158, 11, 0.2); }
+  to { border-color: rgba(245, 158, 11, 0.9); box-shadow: 0 0 8px rgba(245, 158, 11, 0.45); }
+}
+
 /* Off-Screen Directional Indicator (Centered, never exceeds screen) */
 .direction-guide {
   align-self: center;
@@ -1124,6 +1147,159 @@ canvas.a-canvas {
 .confirm-pin-btn:active {
   background: var(--red-dark);
   transform: scale(0.97);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   COMPASS CALIBRATION GUIDE MODAL (Figure-8 Motion Guidance)
+   ───────────────────────────────────────────────────────────── */
+.calibration-modal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: auto !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  height: 100dvh !important;
+  background: rgba(0, 0, 0, 0.78);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 600;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+  pointer-events: auto;
+  overflow: hidden;
+  box-sizing: border-box !important;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.calibration-modal.hidden {
+  display: none !important;
+}
+
+.calib-card {
+  width: 100%;
+  max-width: 380px;
+  background: #0f172a;
+  border: 1.5px solid rgba(234, 67, 53, 0.5);
+  border-radius: 20px;
+  padding: clamp(16px, 3vh, 22px) clamp(14px, 3.5vw, 20px);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 24px rgba(234, 67, 53, 0.25);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-sizing: border-box;
+}
+
+.calib-icon-wrapper {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calib-infinity-icon {
+  font-size: 42px;
+  line-height: 1;
+  color: var(--red-primary);
+  filter: drop-shadow(0 0 10px rgba(234, 67, 53, 0.7));
+  animation: floatInfinity 2s infinite ease-in-out;
+}
+
+@keyframes floatInfinity {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.1) rotate(15deg); }
+}
+
+.calib-title {
+  font-size: clamp(15px, 3.8vw, 17px);
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  margin: 0;
+  color: #ffffff;
+}
+
+.calib-desc {
+  font-size: clamp(10px, 2.6vw, 11.5px);
+  color: #94a3b8;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.calib-desc strong {
+  color: #ff998c;
+}
+
+.calib-progress-container {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.calib-progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--red-primary), var(--green-latched));
+  border-radius: 4px;
+  transition: width 0.2s ease;
+}
+
+.calib-status-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.calib-status-text {
+  font-size: clamp(9px, 2.4vw, 10px);
+  font-weight: 700;
+  color: #cbd5e1;
+  font-family: monospace;
+}
+
+.calib-btn-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.calib-dismiss-btn {
+  flex: 1 1 0%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+  border-radius: 10px;
+  padding: 8px 6px;
+  font-size: clamp(9.5px, 2.4vw, 10.5px);
+  font-weight: 700;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.calib-done-btn {
+  flex: 1 1 0%;
+  background: var(--red-primary);
+  border: none;
+  color: #fff;
+  border-radius: 10px;
+  padding: 8px 6px;
+  font-size: clamp(9.5px, 2.4vw, 10.5px);
+  font-weight: 800;
+  cursor: pointer;
+  box-sizing: border-box;
+  box-shadow: 0 4px 12px rgba(234, 67, 53, 0.4);
 }
 
 /* ─────────────────────────────────────────────────────────────

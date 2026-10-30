@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#ea4335">
   <title>Precision Map Pin AR | Real-World Address WebAR</title>
   
-  <link rel="stylesheet" href="style.css?v=2.3">
+  <link rel="stylesheet" href="style.css?v=2.4">
 
   <!-- Leaflet Interactive Map Picker CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
@@ -26,7 +26,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" data-preload-chunks="slam"></script>
 
   <!-- 4. Application Logic -->
-  <script src="app.js?v=2.3"></script>
+  <script src="app.js?v=2.4"></script>
 </head>
 <body>
   <!-- Modern AR HUD Overlay -->
@@ -79,6 +79,10 @@
           </div>
           <div class="metric-pill status-pill" id="latch-pill">
             <span id="latch-pill-text">🛰️ GPS TRACKING</span>
+          </div>
+          <div class="metric-pill calib-pill uncalibrated" id="calib-pill" title="Tap to calibrate compass for precision North">
+            <span id="calib-pill-icon">⚠️</span>
+            <span id="calib-pill-text">CALIBRATE</span>
           </div>
           <div class="metric-pill gps-pill">
             <span id="tele-acc" class="metric-val">±--m</span>
@@ -217,6 +221,32 @@
             <span id="map-picked-coords" class="coords-val">41.76370, 12.60930</span>
           </div>
           <button id="btn-confirm-map-pin" class="confirm-pin-btn">📍 PLACE PIN AT THIS SPOT</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compass Calibration Guide Modal -->
+    <div id="calibration-modal" class="calibration-modal hidden">
+      <div class="calib-card">
+        <div class="calib-icon-wrapper">
+          <div class="calib-infinity-icon">∞</div>
+        </div>
+        <h2 class="calib-title">CALIBRATE COMPASS</h2>
+        <p class="calib-desc">
+          Wave your phone in a <strong>figure-8 motion</strong> in the air to establish precision North tracking (works both held vertically or flat).
+        </p>
+        
+        <!-- Real-Time Motion Progress Indicator -->
+        <div class="calib-progress-container">
+          <div class="calib-progress-bar" id="calib-progress-bar"></div>
+        </div>
+        <div class="calib-status-row">
+          <span id="calib-status-text" class="calib-status-text">Detecting motion (0%)...</span>
+        </div>
+
+        <div class="calib-btn-row">
+          <button type="button" id="btn-dismiss-calib" class="calib-dismiss-btn">LATER</button>
+          <button type="button" id="btn-done-calib" class="calib-done-btn">DONE</button>
         </div>
       </div>
     </div>

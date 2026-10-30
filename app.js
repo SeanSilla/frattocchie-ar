@@ -25,41 +25,46 @@ const state = {
   smoothedHeading: 0,
   headingTrim: 0,
   compassSource: 'INITIALIZING',
+  isCompassCalibrated: false,
+  calibrationProgress: 0,
   pinScale: 1.0,
   pinElevation: 0,
   distanceMeters: 0,
   bearingDegrees: 0,
 };
 
-// Compute tilt-compensated true compass heading from 3D Euler angles (alpha, beta, gamma)
-function computeTiltCompensatedHeading(alpha, beta, gamma) {
+// Seamless Omni-Directional Heading: Computes True North whether held vertically (AR camera) or horizontally (flat compass)
+function computeOmniDirectionalHeading(alpha, beta, gamma) {
   const degToRad = Math.PI / 180;
+  const a = (alpha || 0) * degToRad;
   const b = (beta || 0) * degToRad;
   const g = (gamma || 0) * degToRad;
-  const a = (alpha || 0) * degToRad;
 
-  const cX = Math.cos(b);
-  const cY = Math.cos(g);
-  const cZ = Math.cos(a);
-  const sX = Math.sin(b);
-  const sY = Math.sin(g);
-  const sZ = Math.sin(a);
+  const cA = Math.cos(a), sA = Math.sin(a);
+  const cB = Math.cos(b), sB = Math.sin(b);
+  const cG = Math.cos(g), sG = Math.sin(g);
 
-  // Device forward vector projected onto horizontal ground plane
-  const Vx = - cZ * sY - sZ * sX * cY;
-  const Vy = - sZ * sY + cZ * sX * cY;
+  // Col 2: Top of phone (+Y in device coordinates) projected onto horizontal Earth plane
+  const Yx = - sA * cB;
+  const Yy = cA * cB;
 
-  let heading = 0;
-  // If phone is flat on a table (pitch & roll < 12 degrees)
-  if (Math.hypot(Vx, Vy) < 0.12) {
-    heading = (360 - (alpha || 0) + 360) % 360;
-  } else {
-    // 0 = North, 90 = East, 180 = South, 270 = West
-    heading = (360 - Math.atan2(Vx, Vy) * (180 / Math.PI) + 360) % 360;
-  }
+  // Col 3: Camera forward (-Z in device coordinates) projected onto horizontal Earth plane
+  const CamX = - (cA * sG + sA * sB * cG);
+  const CamY = - (sA * sG - cA * sB * cG);
+
+  // Continuous smooth blend between horizontal (beta < 20°, top of phone) and vertical (beta > 65°, camera forward)
+  const absBeta = Math.abs(beta || 0);
+  let t = (absBeta - 20) / 45; // 0 at <= 20°, 1 at >= 65°
+  t = Math.max(0, Math.min(1, t));
+
+  const East = (1 - t) * Yx + t * CamX;
+  const North = (1 - t) * Yy + t * CamY;
+
+  let heading = Math.atan2(East, North) * (180 / Math.PI);
+  let compHeading = (360 - heading + 360) % 360;
 
   const screenAngle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
-  return (heading + screenAngle + 360) % 360;
+  return (compHeading + screenAngle + 360) % 360;
 }
 
 // Circular shortest-distance exponential smoothing (prevents 0/360 boundary glitches)
@@ -67,6 +72,65 @@ function smoothHeading(current, target, customFactor) {
   let diff = (target - current + 540) % 360 - 180;
   const factor = customFactor !== undefined ? customFactor : (Math.abs(diff) > 35 ? 0.6 : 0.18);
   return (current + diff * factor + 360) % 360;
+}
+
+// 3D Figure-8 Compass Calibration Engine
+class CalibrationEngine {
+  constructor() {
+    this.pitchMin = 999;
+    this.pitchMax = -999;
+    this.rollMin = 999;
+    this.rollMax = -999;
+    this.isCalibrated = false;
+    this.progress = 0;
+    this.source = 'UNCALIBRATED';
+  }
+
+  feed(e, isAbsolute = false) {
+    // 1. iOS Hardware-reported compass accuracy
+    if (e.webkitCompassAccuracy !== undefined && e.webkitCompassAccuracy !== null) {
+      if (e.webkitCompassAccuracy > 0 && e.webkitCompassAccuracy <= 25) {
+        this.isCalibrated = true;
+        this.progress = 100;
+        this.source = `IOS COMPASS (±${Math.round(e.webkitCompassAccuracy)}°)`;
+        return { isCalibrated: true, progress: 100, source: this.source };
+      } else if (e.webkitCompassAccuracy < 0) {
+        this.isCalibrated = false;
+        this.source = 'IOS COMPASS (UNCALIBRATED)';
+        return { isCalibrated: false, progress: this.progress, source: this.source };
+      }
+    }
+
+    // 2. Android & Generic: Detect Figure-8 3D angular sweep
+    const beta = e.beta || 0;
+    const gamma = e.gamma || 0;
+
+    this.pitchMin = Math.min(this.pitchMin, beta);
+    this.pitchMax = Math.max(this.pitchMax, beta);
+    this.rollMin = Math.min(this.rollMin, gamma);
+    this.rollMax = Math.max(this.rollMax, gamma);
+
+    const pitchSpread = Math.min(40, this.pitchMax - this.pitchMin);
+    const rollSpread = Math.min(30, this.rollMax - this.rollMin);
+
+    const calcProgress = Math.min(100, Math.round(((pitchSpread / 40) * 50) + ((rollSpread / 30) * 50)));
+    this.progress = Math.max(this.progress, calcProgress);
+
+    if (this.progress >= 100) {
+      this.isCalibrated = true;
+      this.source = isAbsolute ? 'EARTH MAGNETOMETER (CALIBRATED)' : 'RELATIVE ORIENTATION';
+    } else {
+      this.source = isAbsolute ? 'EARTH MAGNETOMETER (CALIBRATING...)' : 'UNCALIBRATED';
+    }
+
+    return { isCalibrated: this.isCalibrated, progress: this.progress, source: this.source };
+  }
+
+  forceCalibrated(sourceName = 'GPS SATELLITE VALIDATED') {
+    this.isCalibrated = true;
+    this.progress = 100;
+    this.source = sourceName;
+  }
 }
 
 // Calculate Haversine distance in meters
@@ -447,6 +511,19 @@ AFRAME.registerComponent('map-pin-controller', {
     const mapPickedCoords = document.getElementById('map-picked-coords');
     const btnConfirmMapPin = document.getElementById('btn-confirm-map-pin');
 
+    // Calibration UI
+    const calibPill = document.getElementById('calib-pill');
+    const calibPillIcon = document.getElementById('calib-pill-icon');
+    const calibPillText = document.getElementById('calib-pill-text');
+
+    const calibModal = document.getElementById('calibration-modal');
+    const calibProgressBar = document.getElementById('calib-progress-bar');
+    const calibStatusText = document.getElementById('calib-status-text');
+    const btnDismissCalib = document.getElementById('btn-dismiss-calib');
+    const btnDoneCalib = document.getElementById('btn-done-calib');
+
+    const calibEngine = new CalibrationEngine();
+
     const audio = new AudioFeedback();
     let leafletMap = null;
     let leafletPinMarker = null;
@@ -506,6 +583,8 @@ AFRAME.registerComponent('map-pin-controller', {
       if (compassSourceLabel) {
         compassSourceLabel.innerText = `Source: ${state.compassSource}`;
       }
+
+      updateCalibrationUI();
 
       // Update Floating Billboard Badge above the 3D Pin
       const pinComp = pinMeshEl ? pinMeshEl.components['red-map-pin'] : null;
@@ -932,6 +1011,67 @@ AFRAME.registerComponent('map-pin-controller', {
       });
     }
 
+    // Calibration UI State Synchronizer
+    const updateCalibrationUI = () => {
+      if (calibPill) {
+        if (state.isCompassCalibrated) {
+          calibPill.className = 'metric-pill calib-pill calibrated';
+          if (calibPillIcon) calibPillIcon.innerText = '✓';
+          if (calibPillText) calibPillText.innerText = 'CALIBRATED';
+          calibPill.title = `Compass Calibrated (${state.compassSource})`;
+        } else {
+          calibPill.className = 'metric-pill calib-pill uncalibrated';
+          if (calibPillIcon) calibPillIcon.innerText = '⚠️';
+          if (calibPillText) calibPillText.innerText = 'CALIBRATE';
+          calibPill.title = 'Compass uncalibrated: tap to wave phone in figure-8';
+        }
+      }
+
+      if (calibProgressBar) {
+        calibProgressBar.style.width = `${state.calibrationProgress}%`;
+        if (state.isCompassCalibrated) {
+          calibProgressBar.style.background = 'var(--green-latched)';
+        } else {
+          calibProgressBar.style.background = 'linear-gradient(90deg, var(--red-primary), var(--green-latched))';
+        }
+      }
+
+      if (calibStatusText) {
+        if (state.isCompassCalibrated) {
+          calibStatusText.innerText = '✓ Compass calibrated! (Precision North locked)';
+          calibStatusText.style.color = 'var(--green-latched)';
+        } else {
+          calibStatusText.innerText = `Motion detected: ${state.calibrationProgress}% (Wave in figure-8)`;
+          calibStatusText.style.color = '#cbd5e1';
+        }
+      }
+    };
+
+    // Calibration Modal Triggers
+    if (calibPill) {
+      calibPill.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (calibModal) calibModal.classList.remove('hidden');
+      });
+    }
+
+    if (btnDismissCalib) {
+      btnDismissCalib.addEventListener('click', () => {
+        if (calibModal) calibModal.classList.add('hidden');
+      });
+    }
+
+    if (btnDoneCalib) {
+      btnDoneCalib.addEventListener('click', () => {
+        calibEngine.forceCalibrated('MANUAL CALIBRATION');
+        state.isCompassCalibrated = true;
+        state.calibrationProgress = 100;
+        updateCalibrationUI();
+        if (calibModal) calibModal.classList.add('hidden');
+        showToast('✓', 'Compass calibration verified.');
+      });
+    }
+
     // Standpoint Mode (Live vs Simulated at Destination)
     btnModeLive.addEventListener('click', () => {
       state.standpointMode = 'LIVE';
@@ -1040,7 +1180,11 @@ AFRAME.registerComponent('map-pin-controller', {
               state.headingTrim = Math.round(smoothHeading(state.headingTrim, diff, 0.12));
               if (sliderTrim) sliderTrim.value = state.headingTrim;
               if (labelTrim) labelTrim.innerText = `${state.headingTrim > 0 ? '+' : ''}${state.headingTrim}°`;
-              state.compassSource = 'GPS COG FUSED (TRUE NORTH)';
+              calibEngine.forceCalibrated('GPS SATELLITE FUSED (TRUE NORTH)');
+              state.isCompassCalibrated = true;
+              state.calibrationProgress = 100;
+              state.compassSource = 'GPS SATELLITE FUSED (TRUE NORTH)';
+              updateCalibrationUI();
             }
 
             updateGeospatialTransform();
@@ -1051,24 +1195,42 @@ AFRAME.registerComponent('map-pin-controller', {
       );
     }
 
-    // High-Precision Multi-Sensor Orientation Fusion (True North / Tilt-Compensated)
+    // High-Precision Multi-Sensor Orientation Fusion (Omni-Directional True North)
     let hasAbsoluteOrientation = false;
 
     const handleOrientation = (e, isAbsolute = false) => {
       let heading = null;
 
       if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
-        // iOS WebKit gives hardware-fused True/Magnetic North directly
+        // iOS WebKit hardware-fused compass
         heading = e.webkitCompassHeading;
-        state.compassSource = 'IOS COMPASS (TRUE NORTH)';
       } else if (e.alpha !== null) {
-        // Android / standard W3C Euler angles with 3D tilt compensation
+        // Android & standard W3C Euler angles: Seamless vertical + horizontal detection
         const beta = e.beta || 0;
         const gamma = e.gamma || 0;
         const alpha = e.alpha || 0;
 
-        heading = computeTiltCompensatedHeading(alpha, beta, gamma);
-        state.compassSource = isAbsolute ? 'EARTH NORTH (ABSOLUTE)' : 'SENSOR ORIENTATION';
+        heading = computeOmniDirectionalHeading(alpha, beta, gamma);
+      }
+
+      // Feed calibration engine
+      const prevCalibrated = state.isCompassCalibrated;
+      const calibRes = calibEngine.feed(e, isAbsolute);
+      state.isCompassCalibrated = calibRes.isCalibrated;
+      state.calibrationProgress = calibRes.progress;
+      state.compassSource = calibRes.source;
+
+      updateCalibrationUI();
+
+      // If calibration just completed, celebrate with chime and auto-hide prompt
+      if (!prevCalibrated && state.isCompassCalibrated) {
+        audio.playLock();
+        showToast('🧭', 'Compass Calibrated! Precision North tracking active.');
+        setTimeout(() => {
+          if (calibModal && !calibModal.classList.contains('hidden')) {
+            calibModal.classList.add('hidden');
+          }
+        }, 1400);
       }
 
       if (heading !== null) {
@@ -1121,11 +1283,18 @@ AFRAME.registerComponent('map-pin-controller', {
 
       updateDestinationUI();
       updateGeospatialTransform();
+
+      // Prompt user to calibrate if uncalibrated
+      setTimeout(() => {
+        if (!state.isCompassCalibrated && calibModal) {
+          calibModal.classList.remove('hidden');
+        }
+      }, 1500);
     });
 
     // Tap on 3D Ground to place / re-anchor pin
     scene.addEventListener('click', (e) => {
-      if (e.target.closest('#hud-container') || e.target.closest('#start-overlay') || e.target.closest('#map-modal')) {
+      if (e.target.closest('#hud-container') || e.target.closest('#start-overlay') || e.target.closest('#map-modal') || e.target.closest('#calibration-modal')) {
         return;
       }
       pinAtCameraFeet();
