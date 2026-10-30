@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#ea4335">
   <title>Precision Map Pin AR | Real-World Address WebAR</title>
@@ -41,7 +41,7 @@
           type="text" 
           id="address-input" 
           class="address-input" 
-          placeholder="Search address, landmark, or lat, lon..." 
+          placeholder="Search address or coordinates..." 
           autocomplete="off" 
           autocorrect="off" 
           spellcheck="false"
@@ -250,6 +250,7 @@
   <a-scene
     xrconfig="delayRun: true"
     xrweb
+    vr-mode-ui="enabled: false"
     xrextras-runtime-error
     renderer="colorManagement: true; physicallyCorrectLights: true; exposure: 1.25; toneMapping: ACESFilmic;"
     map-pin-controller>
