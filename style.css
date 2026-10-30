@@ -10,11 +10,11 @@
   --dark-border: rgba(255, 255, 255, 0.14);
   --glass-blur: blur(16px);
   
-  /* Safe Area Insets with mobile fallbacks (Bottom cleared for 48px Android navbar) */
-  --safe-top: max(env(safe-area-inset-top, 0px), 12px);
-  --safe-bottom: max(env(safe-area-inset-bottom, 0px), 56px);
-  --safe-left: max(env(safe-area-inset-left, 0px), 12px);
-  --safe-right: max(env(safe-area-inset-right, 0px), 12px);
+  /* Safe Area Insets with mobile fallbacks (Bottom cleared for 48px-56px Android navbar & home indicator) */
+  --safe-top: max(env(safe-area-inset-top, 0px), 14px);
+  --safe-bottom: max(env(safe-area-inset-bottom, 0px), 68px);
+  --safe-left: max(env(safe-area-inset-left, 0px), 14px);
+  --safe-right: max(env(safe-area-inset-right, 0px), 14px);
 }
 
 *, *::before, *::after {
@@ -312,12 +312,13 @@ canvas.a-canvas {
   border: none;
   color: #fff;
   border-radius: 16px;
-  padding: 5px clamp(7px, 1.8vw, 10px);
+  padding: 5px clamp(8px, 2vw, 12px);
   font-size: clamp(9px, 2.2vw, 10px);
   font-weight: 800;
   letter-spacing: 0.3px;
   cursor: pointer;
   flex-shrink: 0;
+  white-space: nowrap;
   transition: background 0.2s ease, transform 0.1s ease;
   box-sizing: border-box;
 }
