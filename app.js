@@ -554,7 +554,7 @@ AFRAME.registerComponent('map-pin-controller', {
         latchPillText.innerText = '🛰️ GPS TRACKING';
         btnLatchGround.classList.remove('active');
         latchIcon.innerText = '🔒';
-        latchLabel.innerText = 'LOCK GROUND';
+        latchLabel.innerText = 'LOCK SLAM';
 
         showToast('🛰️', 'Released ground latch. Following live GPS & compass.');
         updateGeospatialTransform();

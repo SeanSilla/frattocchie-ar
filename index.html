@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#ea4335">
   <title>Precision Map Pin AR | Real-World Address WebAR</title>
   
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2.2">
 
   <!-- Leaflet Interactive Map Picker CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
@@ -26,7 +26,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" data-preload-chunks="slam"></script>
 
   <!-- 4. Application Logic -->
-  <script src="app.js"></script>
+  <script src="app.js?v=2.2"></script>
 </head>
 <body>
   <!-- Modern AR HUD Overlay -->
@@ -41,6 +41,7 @@
           type="text" 
           id="address-input" 
           class="address-input" 
+          size="1"
           placeholder="Search address or coordinates..." 
           autocomplete="off" 
           autocorrect="off" 
@@ -62,7 +63,7 @@
             <div id="dest-address" class="dest-address">Frattocchie, Marino (RM), Lazio, Italy</div>
           </div>
           <button id="btn-open-gmaps" class="gmaps-link-btn" title="Open in Google Maps">
-            <span>🗺️ MAPS</span>
+            <span>🗺️ MAP</span>
           </button>
         </div>
 
@@ -114,12 +115,12 @@
     <div class="bottom-toolbar">
       <button id="btn-toggle-map" class="toolbar-btn primary" title="Pick location on interactive map">
         <span class="btn-icon">🗺️</span>
-        <span class="btn-label">MAP PICKER</span>
+        <span class="btn-label">MAP</span>
       </button>
 
       <button id="btn-latch-ground" class="toolbar-btn" title="Lock pin to physical ground with SLAM (zero GPS drift)">
         <span class="btn-icon" id="latch-icon">🔒</span>
-        <span class="btn-label" id="latch-label">LOCK GROUND</span>
+        <span class="btn-label" id="latch-label">LOCK SLAM</span>
       </button>
 
       <button id="btn-pin-feet" class="toolbar-btn" title="Drop red pin right here in front of you">

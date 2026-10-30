@@ -10,54 +10,70 @@
   --dark-border: rgba(255, 255, 255, 0.14);
   --glass-blur: blur(16px);
   
-  /* Safe Area Insets with mobile fallbacks */
+  /* Safe Area Insets with mobile fallbacks (Bottom cleared for 48px Android navbar) */
   --safe-top: max(env(safe-area-inset-top, 0px), 12px);
-  --safe-bottom: max(env(safe-area-inset-bottom, 0px), 14px);
-  --safe-left: max(env(safe-area-inset-left, 0px), 10px);
-  --safe-right: max(env(safe-area-inset-right, 0px), 10px);
+  --safe-bottom: max(env(safe-area-inset-bottom, 0px), 56px);
+  --safe-left: max(env(safe-area-inset-left, 0px), 12px);
+  --safe-right: max(env(safe-area-inset-right, 0px), 12px);
 }
 
 *, *::before, *::after {
-  box-sizing: border-box;
+  box-sizing: border-box !important;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
 }
 
 html, body {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  max-width: 100vw;
-  height: 100%;
-  height: 100dvh;
-  overflow: hidden;
-  overflow-x: hidden;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  height: 100dvh !important;
+  overflow: hidden !important;
+  overflow-x: hidden !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   background-color: #000;
   color: #fff;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  box-sizing: border-box !important;
+}
+
+/* Constrain A-Frame Scene & WebGL Canvas within bounds */
+a-scene,
+a-scene canvas,
+canvas.a-canvas {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
    LANDING / START SCREEN OVERLAY (100% Scalable, Never Cut Off)
    ───────────────────────────────────────────────────────────── */
 .overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  max-width: 100vw;
-  height: 100%;
-  height: 100dvh;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: auto !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  height: 100dvh !important;
   background: radial-gradient(circle at center, #1e293b 0%, #090d16 100%);
   display: flex;
   justify-content: center;
@@ -66,6 +82,7 @@ html, body {
   padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
   overflow-y: auto;
   overflow-x: hidden;
+  box-sizing: border-box !important;
   -webkit-overflow-scrolling: touch;
   transition: opacity 0.4s ease, visibility 0.4s ease;
 }
@@ -185,22 +202,23 @@ html, body {
    MAIN AR HUD CONTAINER (100% Pinned, Zero Horizontal Overflow)
    ───────────────────────────────────────────────────────────── */
 #hud-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  max-width: 100vw;
-  height: 100%;
-  height: 100dvh;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: auto !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  height: 100dvh !important;
   pointer-events: none;
   z-index: 100;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
-  overflow: hidden;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
 }
 
 /* Top Navigation: Search + Destination Card + Direction Guide */
@@ -210,10 +228,11 @@ html, body {
   flex-direction: column;
   gap: 5px;
   width: 100%;
-  max-width: 520px;
+  max-width: 480px;
   margin: 0 auto;
   pointer-events: auto;
   overflow: visible;
+  box-sizing: border-box;
 }
 
 /* Search Box */
@@ -225,11 +244,12 @@ html, body {
   background: var(--dark-bg);
   border: 1px solid var(--dark-border);
   border-radius: 26px;
-  padding: 3px 5px 3px 10px;
+  padding: 3px 6px 3px 10px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   overflow: hidden;
+  box-sizing: border-box;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -239,26 +259,27 @@ html, body {
 }
 
 .search-icon {
-  font-size: clamp(13px, 3.2vw, 15px);
-  margin-right: 6px;
+  font-size: clamp(12px, 3vw, 14px);
+  margin-right: 5px;
   opacity: 0.8;
   flex-shrink: 0;
 }
 
 .address-input {
   flex: 1 1 0%;
-  width: 0;
-  min-width: 0;
+  width: 0 !important;
+  min-width: 0 !important;
   background: transparent;
   border: none;
   outline: none;
   color: #fff;
-  font-size: clamp(11.5px, 3vw, 13px);
+  font-size: clamp(11px, 2.8vw, 12.5px);
   padding: 5px 0;
   font-family: inherit;
   text-overflow: ellipsis;
   -webkit-user-select: text;
   user-select: text;
+  box-sizing: border-box;
 }
 
 .address-input::placeholder {
@@ -291,13 +312,14 @@ html, body {
   border: none;
   color: #fff;
   border-radius: 16px;
-  padding: 5px clamp(9px, 2.2vw, 12px);
-  font-size: clamp(9.5px, 2.4vw, 10.5px);
+  padding: 5px clamp(7px, 1.8vw, 10px);
+  font-size: clamp(9px, 2.2vw, 10px);
   font-weight: 800;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   cursor: pointer;
   flex-shrink: 0;
   transition: background 0.2s ease, transform 0.1s ease;
+  box-sizing: border-box;
 }
 
 .search-go-btn:active {
@@ -386,38 +408,40 @@ html, body {
   background: var(--dark-bg);
   border: 1px solid var(--dark-border);
   border-radius: 14px;
-  padding: clamp(7px, 1.4vh, 9px) clamp(8px, 2vw, 11px);
+  padding: 6px 9px;
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
+  box-sizing: border-box;
 }
 
 .dest-main-row {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   width: 100%;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .dest-pin-icon {
-  font-size: clamp(18px, 4.5vw, 22px);
+  font-size: clamp(16px, 4vw, 20px);
   filter: drop-shadow(0 0 8px rgba(234, 67, 53, 0.6));
   flex-shrink: 0;
 }
 
 .dest-info {
   flex: 1 1 0%;
-  width: 0;
-  min-width: 0;
+  width: 0 !important;
+  min-width: 0 !important;
   overflow: hidden;
 }
 
 .dest-title {
-  font-size: clamp(11.5px, 3.2vw, 13px);
+  font-size: clamp(11px, 2.8vw, 12.5px);
   font-weight: 800;
   color: #ffffff;
   white-space: nowrap;
@@ -426,7 +450,7 @@ html, body {
 }
 
 .dest-address {
-  font-size: clamp(9px, 2.4vw, 10.5px);
+  font-size: clamp(8.5px, 2.2vw, 9.5px);
   color: #94a3b8;
   white-space: nowrap;
   overflow: hidden;
@@ -438,13 +462,14 @@ html, body {
   border: 1px solid rgba(26, 115, 232, 0.5);
   color: #93c5fd;
   border-radius: 8px;
-  padding: 4px clamp(5px, 1.6vw, 7px);
-  font-size: clamp(8.5px, 2.3vw, 9.5px);
+  padding: 3px 6px;
+  font-size: clamp(8px, 2vw, 9px);
   font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .gmaps-link-btn:active {
@@ -459,6 +484,7 @@ html, body {
   gap: 3px;
   flex-wrap: wrap;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .metric-pill {
@@ -468,10 +494,11 @@ html, body {
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 5px;
-  padding: 2px 5px;
-  font-size: clamp(8px, 2.2vw, 9px);
+  padding: 2px 4px;
+  font-size: clamp(7.5px, 2vw, 8.5px);
   font-family: monospace;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .distance-pill {
@@ -561,10 +588,10 @@ html, body {
    ───────────────────────────────────────────────────────────── */
 .radar-container {
   position: absolute;
-  bottom: calc(var(--safe-bottom) + 64px);
+  bottom: calc(var(--safe-bottom) + 52px);
   right: var(--safe-right);
-  width: clamp(48px, 12vw, 56px);
-  height: clamp(48px, 12vw, 56px);
+  width: clamp(44px, 11vw, 50px);
+  height: clamp(44px, 11vw, 50px);
   border-radius: 50%;
   background: rgba(15, 23, 42, 0.90);
   border: 1.5px solid rgba(234, 67, 53, 0.65);
@@ -577,6 +604,7 @@ html, body {
   align-items: center;
   overflow: hidden;
   z-index: 105;
+  box-sizing: border-box;
 }
 
 .radar-dial {
@@ -658,7 +686,7 @@ html, body {
    ───────────────────────────────────────────────────────────── */
 .hud-toast {
   position: absolute;
-  bottom: calc(var(--safe-bottom) + 68px);
+  bottom: calc(var(--safe-bottom) + 54px);
   left: var(--safe-left);
   right: var(--safe-right);
   margin: 0 auto;
@@ -677,6 +705,7 @@ html, body {
   -webkit-backdrop-filter: var(--glass-blur);
   z-index: 250;
   pointer-events: none;
+  box-sizing: border-box;
 }
 
 .hud-toast.hidden {
@@ -689,7 +718,7 @@ html, body {
 }
 
 .toast-msg {
-  font-size: clamp(10px, 2.6vw, 11px);
+  font-size: clamp(9.5px, 2.4vw, 10.5px);
   font-weight: 700;
   color: #ffffff;
   white-space: normal;
@@ -703,17 +732,18 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(4px, 1.4vw, 7px);
+  gap: clamp(3px, 1.2vw, 6px);
   width: 100%;
   max-width: min(440px, 100%);
   margin: 0 auto;
   pointer-events: auto;
+  box-sizing: border-box;
 }
 
 .toolbar-btn {
   flex: 1 1 0%;
-  min-width: 0;
-  width: 0;
+  min-width: 0 !important;
+  width: 0 !important;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -722,13 +752,14 @@ html, body {
   background: var(--dark-bg);
   border: 1px solid var(--dark-border);
   border-radius: 12px;
-  padding: clamp(6px, 1.2vh, 8px) 2px;
+  padding: clamp(5px, 1vh, 7px) 2px;
   color: #cbd5e1;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .toolbar-btn.primary {
@@ -750,12 +781,12 @@ html, body {
 }
 
 .btn-icon {
-  font-size: clamp(13px, 3.5vw, 16px);
+  font-size: clamp(13px, 3.2vw, 15px);
   line-height: 1;
 }
 
 .btn-label {
-  font-size: clamp(7.5px, 2.1vw, 9px);
+  font-size: clamp(7.5px, 2.1vw, 8.5px);
   font-weight: 800;
   letter-spacing: 0.2px;
   white-space: nowrap;
@@ -770,13 +801,13 @@ html, body {
    ───────────────────────────────────────────────────────────── */
 .adjust-drawer {
   position: absolute;
-  bottom: calc(var(--safe-bottom) + 64px);
+  bottom: calc(var(--safe-bottom) + 52px);
   left: var(--safe-left);
   right: var(--safe-right);
   margin: 0 auto;
   width: auto;
-  max-width: 400px;
-  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 80px);
+  max-width: 380px;
+  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 64px);
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -792,6 +823,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  box-sizing: border-box;
 }
 
 .adjust-drawer.hidden {
@@ -922,15 +954,15 @@ html, body {
    LEAFLET MAP MODAL (Strictly Viewport Pinned)
    ───────────────────────────────────────────────────────────── */
 .map-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  max-width: 100vw;
-  height: 100%;
-  height: 100dvh;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: auto !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  height: 100dvh !important;
   background: rgba(0, 0, 0, 0.75);
   display: flex;
   justify-content: center;
@@ -939,6 +971,7 @@ html, body {
   padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
   pointer-events: auto;
   overflow: hidden;
+  box-sizing: border-box !important;
 }
 
 .map-modal.hidden {
@@ -1137,9 +1170,9 @@ html, body {
     height: 94dvh;
   }
   .radar-container {
-    bottom: calc(var(--safe-bottom) + 60px);
-    width: 44px;
-    height: 44px;
+    bottom: calc(var(--safe-bottom) + 48px);
+    width: 42px;
+    height: 42px;
   }
 }
 
