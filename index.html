@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#ea4335">
   <title>Precision Map Pin AR | Real-World Address WebAR</title>
   
-  <link rel="stylesheet" href="style.css?v=2.2">
+  <link rel="stylesheet" href="style.css?v=2.3">
 
   <!-- Leaflet Interactive Map Picker CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
@@ -26,7 +26,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" data-preload-chunks="slam"></script>
 
   <!-- 4. Application Logic -->
-  <script src="app.js?v=2.2"></script>
+  <script src="app.js?v=2.3"></script>
 </head>
 <body>
   <!-- Modern AR HUD Overlay -->
@@ -160,13 +160,23 @@
           <input type="range" id="slider-elevation" class="drawer-slider" min="0" max="30" step="1" value="0">
         </div>
 
-        <!-- Compass Trim Slider -->
+        <!-- Compass Trim & North Calibration -->
         <div class="drawer-row">
           <div class="drawer-label-col">
-            <span class="row-label">COMPASS TRIM:</span>
+            <span class="row-label">NORTH CALIBRATION:</span>
             <span id="label-trim" class="row-val">0°</span>
           </div>
-          <input type="range" id="slider-trim" class="drawer-slider" min="-90" max="90" step="1" value="0">
+          <input type="range" id="slider-trim" class="drawer-slider" min="-180" max="180" step="1" value="0">
+          <div class="standpoint-toggle-group" style="margin-top: 5px;">
+            <button id="btn-trim-minus" class="mode-toggle-btn" type="button" title="Rotate North 45° CCW">↺ -45°</button>
+            <button id="btn-trim-reset" class="mode-toggle-btn" type="button" title="Reset North trim to 0°">🎯 ZERO</button>
+            <button id="btn-trim-plus" class="mode-toggle-btn" type="button" title="Rotate North 45° CW">↻ +45°</button>
+            <button id="btn-align-camera" class="mode-toggle-btn" type="button" title="Set current camera view as North">🧭 ALIGN</button>
+          </div>
+          <div style="font-size: 8px; color: #94a3b8; margin-top: 3px; display: flex; justify-content: space-between;">
+            <span id="compass-source-label">Source: Initializing...</span>
+            <span>Wave in 8 to calibrate</span>
+          </div>
         </div>
 
         <!-- Quick Standpoint Mode (Live vs Simulated at Destination) -->

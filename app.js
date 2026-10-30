@@ -21,12 +21,53 @@ const state = {
   standpointMode: 'LIVE', // 'LIVE' (Real satellite GPS) or 'SIMULATED' (At destination)
   isLatched: false,       // When true, 8th Wall SLAM locks pin coordinates; GPS jitter decoupled
   compassHeading: 0,
+  rawCompassHeading: 0,
+  smoothedHeading: 0,
   headingTrim: 0,
+  compassSource: 'INITIALIZING',
   pinScale: 1.0,
   pinElevation: 0,
   distanceMeters: 0,
   bearingDegrees: 0,
 };
+
+// Compute tilt-compensated true compass heading from 3D Euler angles (alpha, beta, gamma)
+function computeTiltCompensatedHeading(alpha, beta, gamma) {
+  const degToRad = Math.PI / 180;
+  const b = (beta || 0) * degToRad;
+  const g = (gamma || 0) * degToRad;
+  const a = (alpha || 0) * degToRad;
+
+  const cX = Math.cos(b);
+  const cY = Math.cos(g);
+  const cZ = Math.cos(a);
+  const sX = Math.sin(b);
+  const sY = Math.sin(g);
+  const sZ = Math.sin(a);
+
+  // Device forward vector projected onto horizontal ground plane
+  const Vx = - cZ * sY - sZ * sX * cY;
+  const Vy = - sZ * sY + cZ * sX * cY;
+
+  let heading = 0;
+  // If phone is flat on a table (pitch & roll < 12 degrees)
+  if (Math.hypot(Vx, Vy) < 0.12) {
+    heading = (360 - (alpha || 0) + 360) % 360;
+  } else {
+    // 0 = North, 90 = East, 180 = South, 270 = West
+    heading = (360 - Math.atan2(Vx, Vy) * (180 / Math.PI) + 360) % 360;
+  }
+
+  const screenAngle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
+  return (heading + screenAngle + 360) % 360;
+}
+
+// Circular shortest-distance exponential smoothing (prevents 0/360 boundary glitches)
+function smoothHeading(current, target, customFactor) {
+  let diff = (target - current + 540) % 360 - 180;
+  const factor = customFactor !== undefined ? customFactor : (Math.abs(diff) > 35 ? 0.6 : 0.18);
+  return (current + diff * factor + 360) % 360;
+}
 
 // Calculate Haversine distance in meters
 function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
@@ -367,6 +408,7 @@ AFRAME.registerComponent('map-pin-controller', {
     const guideArrow = document.getElementById('guide-arrow');
     const guideText = document.getElementById('guide-text');
 
+    const radarWidget = document.getElementById('radar-widget');
     const radarDial = document.getElementById('radar-dial');
     const radarPinBlip = document.getElementById('radar-pin-blip');
 
@@ -390,6 +432,11 @@ AFRAME.registerComponent('map-pin-controller', {
     const labelElevation = document.getElementById('label-elevation');
     const sliderTrim = document.getElementById('slider-trim');
     const labelTrim = document.getElementById('label-trim');
+    const btnTrimMinus = document.getElementById('btn-trim-minus');
+    const btnTrimReset = document.getElementById('btn-trim-reset');
+    const btnTrimPlus = document.getElementById('btn-trim-plus');
+    const btnAlignCamera = document.getElementById('btn-align-camera');
+    const compassSourceLabel = document.getElementById('compass-source-label');
     const btnModeLive = document.getElementById('btn-mode-live');
     const btnModeSim = document.getElementById('btn-mode-sim');
     const btnGpsCurrent = document.getElementById('btn-gps-current');
@@ -456,21 +503,24 @@ AFRAME.registerComponent('map-pin-controller', {
       if (metricDist) metricDist.innerText = formatDistance(dist);
       if (metricBearing) metricBearing.innerText = `${Math.round(bearing)}° ${getCardinal(bearing)}`;
 
+      if (compassSourceLabel) {
+        compassSourceLabel.innerText = `Source: ${state.compassSource}`;
+      }
+
       // Update Floating Billboard Badge above the 3D Pin
       const pinComp = pinMeshEl ? pinMeshEl.components['red-map-pin'] : null;
       if (pinComp && pinComp.updateBadgeTexture) {
         pinComp.updateBadgeTexture(state.target.title, `${formatDistance(dist)} • ${Math.round(bearing)}° ${getCardinal(bearing)}`);
       }
 
-      // Update Mini Radar Widget
+      // Update Mini Radar Widget (True North card with Target Blip)
       if (radarDial && radarPinBlip) {
         radarDial.style.transform = `rotate(${-effectiveHeading}deg)`;
         const rad = (bearing - 90) * (Math.PI / 180);
-        const r = 24; // 24px radius
-        const x = 32 + Math.cos(rad) * r;
-        const y = 32 + Math.sin(rad) * r;
-        radarPinBlip.style.left = `${x.toFixed(1)}px`;
-        radarPinBlip.style.top = `${y.toFixed(1)}px`;
+        const x = 50 + Math.cos(rad) * 36;
+        const y = 50 + Math.sin(rad) * 36;
+        radarPinBlip.style.left = `${x.toFixed(1)}%`;
+        radarPinBlip.style.top = `${y.toFixed(1)}%`;
       }
 
       // Off-Screen Directional Indicator Arrow
@@ -830,6 +880,58 @@ AFRAME.registerComponent('map-pin-controller', {
       updateGeospatialTransform();
     });
 
+    if (btnTrimMinus) {
+      btnTrimMinus.addEventListener('click', () => {
+        state.headingTrim = ((state.headingTrim - 45 + 180 + 360) % 360) - 180;
+        sliderTrim.value = state.headingTrim;
+        labelTrim.innerText = `${state.headingTrim > 0 ? '+' : ''}${state.headingTrim}°`;
+        showToast('🧭', `North trimmed: ${state.headingTrim}°`);
+        updateGeospatialTransform();
+      });
+    }
+
+    if (btnTrimPlus) {
+      btnTrimPlus.addEventListener('click', () => {
+        state.headingTrim = ((state.headingTrim + 45 + 180 + 360) % 360) - 180;
+        sliderTrim.value = state.headingTrim;
+        labelTrim.innerText = `${state.headingTrim > 0 ? '+' : ''}${state.headingTrim}°`;
+        showToast('🧭', `North trimmed: ${state.headingTrim}°`);
+        updateGeospatialTransform();
+      });
+    }
+
+    if (btnTrimReset) {
+      btnTrimReset.addEventListener('click', () => {
+        state.headingTrim = 0;
+        sliderTrim.value = 0;
+        labelTrim.innerText = '0°';
+        showToast('🎯', 'North trim reset to 0°');
+        updateGeospatialTransform();
+      });
+    }
+
+    if (btnAlignCamera) {
+      btnAlignCamera.addEventListener('click', () => {
+        // Calibrate so that the current camera forward direction points to North (0°)
+        let newTrim = (360 - state.compassHeading) % 360;
+        if (newTrim > 180) newTrim -= 360;
+        state.headingTrim = Math.round(newTrim);
+        sliderTrim.value = state.headingTrim;
+        labelTrim.innerText = `${state.headingTrim > 0 ? '+' : ''}${state.headingTrim}°`;
+        showToast('🧭', `Aligned! Current view calibrated to North (0°).`);
+        updateGeospatialTransform();
+      });
+    }
+
+    if (radarWidget) {
+      radarWidget.style.cursor = 'pointer';
+      radarWidget.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const effHeading = (state.compassHeading + state.headingTrim + 360) % 360;
+        showToast('🧭', `Heading: ${Math.round(effHeading)}° ${getCardinal(effHeading)} • Source: ${state.compassSource}`);
+      });
+    }
+
     // Standpoint Mode (Live vs Simulated at Destination)
     btnModeLive.addEventListener('click', () => {
       state.standpointMode = 'LIVE';
@@ -931,6 +1033,16 @@ AFRAME.registerComponent('map-pin-controller', {
               }
             }
 
+            // Fused GPS satellite heading (True North) when walking
+            if (pos.coords.heading !== null && !isNaN(pos.coords.heading) && pos.coords.speed > 0.7) {
+              const gpsHeading = pos.coords.heading; // True North from satellite trajectory
+              const diff = (gpsHeading - state.rawCompassHeading + 540) % 360 - 180;
+              state.headingTrim = Math.round(smoothHeading(state.headingTrim, diff, 0.12));
+              if (sliderTrim) sliderTrim.value = state.headingTrim;
+              if (labelTrim) labelTrim.innerText = `${state.headingTrim > 0 ? '+' : ''}${state.headingTrim}°`;
+              state.compassSource = 'GPS COG FUSED (TRUE NORTH)';
+            }
+
             updateGeospatialTransform();
           }
         },
@@ -939,15 +1051,52 @@ AFRAME.registerComponent('map-pin-controller', {
       );
     }
 
-    // Phone Compass Heading Tracker
-    window.addEventListener('deviceorientation', (e) => {
+    // High-Precision Multi-Sensor Orientation Fusion (True North / Tilt-Compensated)
+    let hasAbsoluteOrientation = false;
+
+    const handleOrientation = (e, isAbsolute = false) => {
+      let heading = null;
+
       if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
-        state.compassHeading = e.webkitCompassHeading;
+        // iOS WebKit gives hardware-fused True/Magnetic North directly
+        heading = e.webkitCompassHeading;
+        state.compassSource = 'IOS COMPASS (TRUE NORTH)';
       } else if (e.alpha !== null) {
-        state.compassHeading = 360 - e.alpha;
+        // Android / standard W3C Euler angles with 3D tilt compensation
+        const beta = e.beta || 0;
+        const gamma = e.gamma || 0;
+        const alpha = e.alpha || 0;
+
+        heading = computeTiltCompensatedHeading(alpha, beta, gamma);
+        state.compassSource = isAbsolute ? 'EARTH NORTH (ABSOLUTE)' : 'SENSOR ORIENTATION';
       }
-      updateGeospatialTransform();
-    });
+
+      if (heading !== null) {
+        state.rawCompassHeading = heading;
+        state.smoothedHeading = smoothHeading(state.smoothedHeading, heading);
+        state.compassHeading = state.smoothedHeading;
+        updateGeospatialTransform();
+      }
+    };
+
+    const attachOrientationListeners = () => {
+      // 1. Listen for deviceorientationabsolute (Standard on Chrome/Android for True/Magnetic North)
+      if ('ondeviceorientationabsolute' in window) {
+        window.addEventListener('deviceorientationabsolute', (e) => {
+          hasAbsoluteOrientation = true;
+          handleOrientation(e, true);
+        });
+      }
+
+      // 2. Also listen for standard deviceorientation (for iOS Safari and fallback)
+      window.addEventListener('deviceorientation', (e) => {
+        if (!hasAbsoluteOrientation || e.webkitCompassHeading !== undefined) {
+          handleOrientation(e, e.absolute === true);
+        }
+      });
+    };
+
+    attachOrientationListeners();
 
     // Start Screen Button: Trigger Camera Stream & 8th Wall SLAM
     startBtn.addEventListener('click', () => {
@@ -955,7 +1104,15 @@ AFRAME.registerComponent('map-pin-controller', {
       audio.init();
 
       if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission().catch((e) => console.warn('Orientation permission error:', e));
+        DeviceOrientationEvent.requestPermission()
+          .then((perm) => {
+            if (perm === 'granted') {
+              attachOrientationListeners();
+            }
+          })
+          .catch((e) => console.warn('Orientation permission error:', e));
+      } else {
+        attachOrientationListeners();
       }
 
       showToast('📸', 'Initializing AR camera & SLAM tracking...');
