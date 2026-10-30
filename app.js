@@ -697,11 +697,33 @@ AFRAME.registerComponent('map-pin-controller', {
         zoomControl: true,
       });
 
-      // CartoDB Voyager tiles (crisp, modern, Google Maps aesthetic)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; CartoDB &copy; OpenStreetMap',
-        maxZoom: 20,
-      }).addTo(leafletMap);
+      // 1. High-Resolution Esri World Street Map (No API Key Required - 100% Free)
+      const esriStreetLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri',
+        maxZoom: 19,
+      });
+
+      // 2. OpenStreetMap Standard Layer (No API Key Required)
+      const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
+      });
+
+      // 3. Esri World Imagery (Satellite aerial view for pinpointing buildings & rooftops)
+      const esriSatelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Satellite &copy; Esri',
+        maxZoom: 19,
+      });
+
+      // Add default street map
+      esriStreetLayer.addTo(leafletMap);
+
+      // Layer Switcher: Allows instant switching between Streets, OpenStreetMap, and Satellite
+      L.control.layers({
+        '🗺️ Streets (Esri)': esriStreetLayer,
+        '🌐 OpenStreetMap': osmLayer,
+        '🛰️ Satellite View': esriSatelliteLayer,
+      }, null, { position: 'topright' }).addTo(leafletMap);
 
       // Custom Red Pin Marker Icon
       const redPinIcon = L.divIcon({
