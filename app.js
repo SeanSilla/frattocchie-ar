@@ -349,6 +349,21 @@ AFRAME.registerComponent('red-map-pin', {
     group.add(this.groundGroup);
 
     // ─────────────────────────────────────────────────────────────
+    // 2b. VERTICAL SKY BEACON BEAM (Visible from afar in any direction)
+    // ─────────────────────────────────────────────────────────────
+    const beamGeo = new THREE.CylinderGeometry(0.04, 0.22, 35, 16);
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: 0xee2c2c,
+      transparent: true,
+      opacity: 0.35,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const beamMesh = new THREE.Mesh(beamGeo, beamMat);
+    beamMesh.position.set(0, 17.5, 0); // Extends from ground up 35m into the sky!
+    group.add(beamMesh);
+
+    // ─────────────────────────────────────────────────────────────
     // 3. 3D FLOATING BILLBOARD BADGE (Address + Live Distance)
     // ─────────────────────────────────────────────────────────────
     this.badgeCanvas = document.createElement('canvas');
@@ -616,13 +631,17 @@ AFRAME.registerComponent('map-pin-controller', {
       // ─────────────────────────────────────────────────────────────
       // Compute SLAM Target Anchor (Ground Horizon Projection)
       // ─────────────────────────────────────────────────────────────
-      // Clamped visual render distance: Pin stays between 3.0m and 22.0m so it is NEVER lost or clipped
-      const renderDist = Math.max(3.0, Math.min(dist, 22.0));
+      // Waypoint Horizon Distance:
+      // If nearby (< 7m), place at actual physical distance.
+      // If far away (> 7m, e.g. 50m, 5km, 500km), clamp to 5.8m Horizon Waypoint Beacon!
+      // This ensures far-away pins are ALWAYS within the visible SLAM tracking volume,
+      // completely clear, sharp, with fully readable billboard badges.
+      const renderDist = dist <= 7.0 ? Math.max(2.5, dist) : 5.8;
 
-      // Dynamic scale with distance: smoothly scales larger when far so it is always crisp and visible
+      // Dynamic scale with distance: subtly scales larger when destination is far
       let dynamicScale = state.pinScale;
-      if (dist > 22.0) {
-        dynamicScale *= Math.min(2.4, 1.0 + Math.log10(dist / 18.0) * 0.65);
+      if (dist > 7.0) {
+        dynamicScale *= Math.min(1.8, 1.0 + Math.log10(Math.max(10, dist) / 10.0) * 0.25);
       }
 
       // Height: STRICTLY at ground / eye level (State pinElevation, never in the sky)
@@ -743,7 +762,7 @@ AFRAME.registerComponent('map-pin-controller', {
     };
 
     // Parse Input (Coordinates, Google Maps Links, or Text Queries)
-    const handleLocationSearch = async (queryText) => {
+    const handleLocationSearch = async (queryText, autoSelectFirst = false) => {
       const q = (queryText || addressInput.value || '').trim();
       if (!q) return;
 
@@ -779,7 +798,14 @@ AFRAME.registerComponent('map-pin-controller', {
         btnSearchGo.innerText = 'FIND';
 
         if (data && data.length > 0) {
-          renderSuggestions(data);
+          if (autoSelectFirst) {
+            const first = data[0];
+            const title = first.name || first.display_name.split(',')[0];
+            setTargetCoordinates(parseFloat(first.lat), parseFloat(first.lon), title, first.display_name);
+            suggestionsDropdown.classList.add('hidden');
+          } else {
+            renderSuggestions(data);
+          }
         } else {
           showToast('⚠️', 'No matching addresses found. Try adding a city name.');
         }
@@ -912,7 +938,7 @@ AFRAME.registerComponent('map-pin-controller', {
 
     addressInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
-        handleLocationSearch(addressInput.value);
+        handleLocationSearch(addressInput.value, true);
         addressInput.blur();
       }
     });
@@ -925,7 +951,7 @@ AFRAME.registerComponent('map-pin-controller', {
     });
 
     btnSearchGo.addEventListener('click', () => {
-      handleLocationSearch(addressInput.value);
+      handleLocationSearch(addressInput.value, true);
     });
 
     // Close suggestions when clicking outside
@@ -1346,12 +1372,17 @@ AFRAME.registerComponent('map-pin-controller', {
         const pinPos = new THREE.Vector3();
         pinRig.object3D.getWorldPosition(pinPos);
 
-        const screenPos = pinPos.clone().project(threeCamera);
+        // Transform pin position into camera local space:
+        // In Three.js, camera looks along -Z. A point is in front of the camera only if camLocalPos.z < -0.2!
+        const camLocalPos = pinPos.clone().applyMatrix4(threeCamera.matrixWorldInverse);
+        const isInFront = camLocalPos.z < -0.2;
 
-        // Pin is inside the camera view if Z < 1.0 and within screen NDC bounds (-0.88 to +0.88)
-        const isInFov = screenPos.z < 1.0 &&
-                        screenPos.x >= -0.88 && screenPos.x <= 0.88 &&
-                        screenPos.y >= -0.88 && screenPos.y <= 0.88;
+        let isInFov = false;
+        if (isInFront) {
+          const screenPos = pinPos.clone().project(threeCamera);
+          isInFov = screenPos.x >= -0.85 && screenPos.x <= 0.85 &&
+                    screenPos.y >= -0.85 && screenPos.y <= 0.85;
+        }
 
         if (isInFov) {
           this.directionGuide.classList.add('hidden');
