@@ -62,7 +62,7 @@ function computeOmniDirectionalHeading(alpha, beta, gamma) {
   const North = (1 - t) * Yy + t * CamY;
 
   let heading = Math.atan2(East, North) * (180 / Math.PI);
-  let compHeading = (360 - heading + 360) % 360;
+  let compHeading = (heading + 360) % 360;
 
   const screenAngle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
   return (compHeading + screenAngle + 360) % 360;
@@ -631,8 +631,23 @@ AFRAME.registerComponent('map-pin-controller', {
       const camObj = camera ? camera.object3D : null;
       const camPos = camObj ? camObj.position : new THREE.Vector3(0, 1.6, 0);
 
-      // Horizontal angle in camera view coordinates
-      const rad = (relativeBearing * Math.PI) / 180;
+      // Get camera yaw in 8th Wall SLAM world space (clockwise from -Z forward)
+      let slamCamYaw = 0;
+      if (camObj) {
+        const camDir = new THREE.Vector3();
+        camObj.getWorldDirection(camDir);
+        slamCamYaw = Math.atan2(camDir.x, -camDir.z) * (180 / Math.PI);
+      }
+
+      // Signed relative bearing relative to camera view (-180° to +180°)
+      const signedRelBearing = ((bearing - effectiveHeading + 540) % 360) - 180;
+
+      // Fixed World-Space Bearing in 8th Wall SLAM:
+      // SLAM Camera Yaw + Relative Bearing locks the target in physical Earth coordinates!
+      // When the user turns their phone, slamCamYaw and effectiveHeading cancel out,
+      // keeping the pin rigidly stationary in real physical space (North never turns with the user)!
+      const slamTargetAngle = ((slamCamYaw + signedRelBearing + 360) % 360);
+      const rad = (slamTargetAngle * Math.PI) / 180;
 
       // Target world position anchored relative to camera in 8th Wall SLAM space
       state.targetWorldPos = {
@@ -640,7 +655,7 @@ AFRAME.registerComponent('map-pin-controller', {
         y: targetY,
         z: camPos.z - Math.cos(rad) * renderDist,
         scale: dynamicScale,
-        relativeBearing: relativeBearing,
+        relativeBearing: (signedRelBearing + 360) % 360,
       };
 
       if (ground) ground.setAttribute('position', `${camPos.x.toFixed(2)} 0 ${camPos.z.toFixed(2)}`);
