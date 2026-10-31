@@ -31,6 +31,7 @@ const state = {
   pinElevation: 0,
   distanceMeters: 0,
   bearingDegrees: 0,
+  targetWorldPos: { x: 0, y: 0, z: -4, scale: 1.0 },
 };
 
 // Seamless Omni-Directional Heading: Computes True North whether held vertically (AR camera) or horizontally (flat compass)
@@ -67,10 +68,14 @@ function computeOmniDirectionalHeading(alpha, beta, gamma) {
   return (compHeading + screenAngle + 360) % 360;
 }
 
-// Circular shortest-distance exponential smoothing (prevents 0/360 boundary glitches)
+// Circular shortest-distance exponential smoothing with Deadband (Eliminates magnetometer micro-jitter)
 function smoothHeading(current, target, customFactor) {
   let diff = (target - current + 540) % 360 - 180;
-  const factor = customFactor !== undefined ? customFactor : (Math.abs(diff) > 35 ? 0.6 : 0.18);
+  // Deadband: Ignore sensor micro-jitter (< 2.2°) when holding phone steady
+  if (Math.abs(diff) < 2.2) {
+    return current;
+  }
+  const factor = customFactor !== undefined ? customFactor : (Math.abs(diff) > 35 ? 0.35 : 0.09);
   return (current + diff * factor + 360) % 360;
 }
 
@@ -472,6 +477,12 @@ AFRAME.registerComponent('map-pin-controller', {
     const guideArrow = document.getElementById('guide-arrow');
     const guideText = document.getElementById('guide-text');
 
+    this.pinRig = pinRig;
+    this.camera = camera;
+    this.directionGuide = directionGuide;
+    this.guideArrow = guideArrow;
+    this.guideText = guideText;
+
     const radarWidget = document.getElementById('radar-widget');
     const radarDial = document.getElementById('radar-dial');
     const radarPinBlip = document.getElementById('radar-pin-blip');
@@ -602,51 +613,37 @@ AFRAME.registerComponent('map-pin-controller', {
         radarPinBlip.style.top = `${y.toFixed(1)}%`;
       }
 
-      // Off-Screen Directional Indicator Arrow
-      if (directionGuide && guideArrow && guideText) {
-        // Human FOV in phone AR is roughly +/- 32 degrees
-        const angleDiff = relativeBearing > 180 ? relativeBearing - 360 : relativeBearing; // -180 to +180
+      // ─────────────────────────────────────────────────────────────
+      // Compute SLAM Target Anchor (Ground Horizon Projection)
+      // ─────────────────────────────────────────────────────────────
+      // Clamped visual render distance: Pin stays between 3.0m and 22.0m so it is NEVER lost or clipped
+      const renderDist = Math.max(3.0, Math.min(dist, 22.0));
 
-        if (Math.abs(angleDiff) > 35) {
-          directionGuide.classList.remove('hidden');
-          if (Math.abs(angleDiff) > 140) {
-            guideArrow.innerText = '↻';
-            guideText.innerText = 'PIN IS BEHIND YOU';
-          } else if (angleDiff < 0) {
-            guideArrow.innerText = '←';
-            guideText.innerText = `TURN LEFT ${Math.round(Math.abs(angleDiff))}° TO PIN`;
-          } else {
-            guideArrow.innerText = '→';
-            guideText.innerText = `TURN RIGHT ${Math.round(angleDiff)}° TO PIN`;
-          }
-        } else {
-          directionGuide.classList.add('hidden');
-        }
+      // Dynamic scale with distance: smoothly scales larger when far so it is always crisp and visible
+      let dynamicScale = state.pinScale;
+      if (dist > 22.0) {
+        dynamicScale *= Math.min(2.4, 1.0 + Math.log10(dist / 18.0) * 0.65);
       }
 
-      // Transform Coordinates into 3D AR Scene
-      // If NOT latched to ground, continuously update position along bearing vector
-      if (!state.isLatched) {
-        const radAngle = (angleDiff => ((angleDiff * Math.PI) / 180))(relativeBearing > 180 ? relativeBearing - 360 : relativeBearing);
+      // Height: STRICTLY at ground / eye level (State pinElevation, never in the sky)
+      const targetY = state.pinElevation;
 
-        let renderDist = dist;
-        let yPos = state.pinElevation;
+      const camObj = camera ? camera.object3D : null;
+      const camPos = camObj ? camObj.position : new THREE.Vector3(0, 1.6, 0);
 
-        // If far away (> 45m), project onto horizon as a beacon
-        if (dist > 45) {
-          renderDist = 32;
-          yPos = state.pinElevation + Math.min(dist / 14, 25);
-        } else {
-          renderDist = Math.max(2.5, dist);
-        }
+      // Horizontal angle in camera view coordinates
+      const rad = (relativeBearing * Math.PI) / 180;
 
-        const xPos = Math.sin((relativeBearing * Math.PI) / 180) * renderDist;
-        const zPos = -Math.cos((relativeBearing * Math.PI) / 180) * renderDist;
+      // Target world position anchored relative to camera in 8th Wall SLAM space
+      state.targetWorldPos = {
+        x: camPos.x + Math.sin(rad) * renderDist,
+        y: targetY,
+        z: camPos.z - Math.cos(rad) * renderDist,
+        scale: dynamicScale,
+        relativeBearing: relativeBearing,
+      };
 
-        pinRig.setAttribute('position', `${xPos.toFixed(2)} ${yPos.toFixed(2)} ${zPos.toFixed(2)}`);
-      }
-
-      ground.setAttribute('position', '0 0 0');
+      if (ground) ground.setAttribute('position', `${camPos.x.toFixed(2)} 0 ${camPos.z.toFixed(2)}`);
     };
 
     // Ground Latch Controls (Zero-jitter SLAM ground lock)
@@ -1303,5 +1300,70 @@ AFRAME.registerComponent('map-pin-controller', {
     // Initial setup
     updateDestinationUI();
     updateGeospatialTransform();
+  },
+
+  // 60fps SLAM Fusion Tick Loop: Buttery Smooth LERP Positioning & Viewport Frustum Guidance
+  tick(time, timeDelta) {
+    const pinRig = this.pinRig;
+    const camera = this.camera;
+    if (!pinRig || !pinRig.object3D) return;
+
+    // 1. Smoothly glide pin toward target in SLAM world space (zero-jitter LERP)
+    if (!state.isLatched && state.targetWorldPos) {
+      const curPos = pinRig.object3D.position;
+      const target = state.targetWorldPos;
+
+      // Exponential ease (0.08 factor absorbs all sensor noise and micro-jitter)
+      curPos.x += (target.x - curPos.x) * 0.08;
+      curPos.y += (target.y - curPos.y) * 0.08;
+      curPos.z += (target.z - curPos.z) * 0.08;
+
+      const curScale = pinRig.object3D.scale.x;
+      const targetScale = target.scale || 1.0;
+      const newScale = curScale + (targetScale - curScale) * 0.08;
+      pinRig.object3D.scale.set(newScale, newScale, newScale);
+    }
+
+    // 2. Continuous Visibility & Field-of-View check
+    if (camera && camera.components && camera.components.camera && this.directionGuide && this.guideArrow && this.guideText) {
+      const threeCamera = camera.components.camera.camera;
+      if (threeCamera && pinRig.object3D) {
+        const pinPos = new THREE.Vector3();
+        pinRig.object3D.getWorldPosition(pinPos);
+
+        const screenPos = pinPos.clone().project(threeCamera);
+
+        // Pin is inside the camera view if Z < 1.0 and within screen NDC bounds (-0.88 to +0.88)
+        const isInFov = screenPos.z < 1.0 &&
+                        screenPos.x >= -0.88 && screenPos.x <= 0.88 &&
+                        screenPos.y >= -0.88 && screenPos.y <= 0.88;
+
+        if (isInFov) {
+          this.directionGuide.classList.add('hidden');
+        } else {
+          this.directionGuide.classList.remove('hidden');
+
+          const camDir = new THREE.Vector3();
+          camera.object3D.getWorldDirection(camDir);
+          const camHeading = (Math.atan2(camDir.x, -camDir.z) * (180 / Math.PI) + 360) % 360;
+
+          const toPin = pinPos.clone().sub(camera.object3D.position);
+          const pinHeading = (Math.atan2(toPin.x, -toPin.z) * (180 / Math.PI) + 360) % 360;
+
+          const diff = (pinHeading - camHeading + 540) % 360 - 180;
+
+          if (Math.abs(diff) > 135) {
+            this.guideArrow.innerText = '↻';
+            this.guideText.innerText = 'PIN IS BEHIND YOU';
+          } else if (diff < 0) {
+            this.guideArrow.innerText = '←';
+            this.guideText.innerText = `TURN LEFT ${Math.round(Math.abs(diff))}° TO PIN`;
+          } else {
+            this.guideArrow.innerText = '→';
+            this.guideText.innerText = `TURN RIGHT ${Math.round(diff)}° TO PIN`;
+          }
+        }
+      }
+    }
   },
 });
