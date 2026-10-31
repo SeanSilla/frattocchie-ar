@@ -31,10 +31,13 @@ const state = {
   pinElevation: 0,
   distanceMeters: 0,
   bearingDegrees: 0,
+  posture: 'STRAIGHT (AR)',
   targetWorldPos: { x: 0, y: 0, z: -4, scale: 1.0 },
 };
 
-// Seamless Omni-Directional Heading: Computes True North whether held vertically (AR camera) or horizontally (flat compass)
+// Seamless Omni-Directional Heading:
+// Computes True North whether held STRAIGHT (vertical AR camera) or HORIZONTALLY (flat in palm like a compass),
+// in portrait, landscape, or any tilt angle in between.
 function computeOmniDirectionalHeading(alpha, beta, gamma) {
   const degToRad = Math.PI / 180;
   const a = (alpha || 0) * degToRad;
@@ -45,27 +48,44 @@ function computeOmniDirectionalHeading(alpha, beta, gamma) {
   const cB = Math.cos(b), sB = Math.sin(b);
   const cG = Math.cos(g), sG = Math.sin(g);
 
-  // Col 2: Top of phone (+Y in device coordinates) projected onto horizontal Earth plane
-  const Yx = - sA * cB;
-  const Yy = cA * cB;
+  // Rotation matrix elements from Device frame to Earth frame:
+  // Col 1: Device +X (Right edge)
+  const R11 = cA * cG - sA * sB * sG; // East component
+  const R21 = sA * cG + cA * sB * sG; // North component
 
-  // Col 3: Camera forward (-Z in device coordinates) projected onto horizontal Earth plane
-  const CamX = - (cA * sG + sA * sB * cG);
-  const CamY = - (sA * sG - cA * sB * cG);
+  // Col 2: Device +Y (Top edge of phone)
+  const R12 = - sA * cB; // East component
+  const R22 = cA * cB;  // North component
 
-  // Continuous smooth blend between horizontal (beta < 20°, top of phone) and vertical (beta > 65°, camera forward)
+  // Col 3: Device -Z (Rear camera forward pointing out back of phone into world)
+  const CamX = - (cA * sG + sA * sB * cG); // East component
+  const CamY = - (sA * sG - cA * sB * cG); // North component
+
+  // Screen orientation angle (0° for portrait, 90° for landscape, 270° for reverse landscape)
+  const screenAngle = (((screen.orientation && screen.orientation.angle) || window.orientation || 0) % 360) * degToRad;
+  const sS = Math.sin(screenAngle);
+  const cS = Math.cos(screenAngle);
+
+  // 1. HORIZONTAL POSTURE (Flat in palm like a handheld compass):
+  // User looks along the visual top of the screen:
+  // v_top = -sin(screenAngle) * DeviceX + cos(screenAngle) * DeviceY
+  const TopX = - sS * R11 + cS * R12;
+  const TopY = - sS * R21 + cS * R22;
+
+  // 2. STRAIGHT POSTURE (Vertical upright AR camera view):
+  // User looks through the rear camera forward into the physical world (CamX, CamY)
+
+  // 3. Continuous smooth cosine blend between Flat (beta <= 25°) and Straight (beta >= 60°):
+  // Completely eliminates gimbal lock and guarantees zero jump when tilting phone up or down
   const absBeta = Math.abs(beta || 0);
-  let t = (absBeta - 20) / 45; // 0 at <= 20°, 1 at >= 65°
+  let t = (absBeta - 25) / 35; // 0 at <= 25°, 1 at >= 60°
   t = Math.max(0, Math.min(1, t));
 
-  const East = (1 - t) * Yx + t * CamX;
-  const North = (1 - t) * Yy + t * CamY;
+  const East = (1 - t) * TopX + t * CamX;
+  const North = (1 - t) * TopY + t * CamY;
 
   let heading = Math.atan2(East, North) * (180 / Math.PI);
-  let compHeading = (heading + 360) % 360;
-
-  const screenAngle = (screen.orientation && screen.orientation.angle) || window.orientation || 0;
-  return (compHeading + screenAngle + 360) % 360;
+  return (heading + 360) % 360;
 }
 
 // Circular shortest-distance exponential smoothing with Deadband (Eliminates magnetometer micro-jitter)
@@ -607,7 +627,7 @@ AFRAME.registerComponent('map-pin-controller', {
       if (metricBearing) metricBearing.innerText = `${Math.round(bearing)}° ${getCardinal(bearing)}`;
 
       if (compassSourceLabel) {
-        compassSourceLabel.innerText = `Source: ${state.compassSource}`;
+        compassSourceLabel.innerText = `Source: ${state.compassSource} • ${state.posture}`;
       }
 
       updateCalibrationUI();
@@ -1269,6 +1289,16 @@ AFRAME.registerComponent('map-pin-controller', {
             calibModal.classList.add('hidden');
           }
         }, 1400);
+      }
+
+      // Detect live device posture (Straight AR vs Horizontal Flat Compass)
+      const betaVal = e.beta !== null && e.beta !== undefined ? Math.abs(e.beta) : 90;
+      if (betaVal <= 25) {
+        state.posture = 'HORIZONTAL (FLAT)';
+      } else if (betaVal >= 60) {
+        state.posture = 'STRAIGHT (AR)';
+      } else {
+        state.posture = 'TILTED (45°)';
       }
 
       if (heading !== null) {
