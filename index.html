@@ -10,7 +10,7 @@
   <meta http-equiv="Expires" content="0">
   <title>Precision Map Pin AR | Real-World Address WebAR</title>
   
-  <link rel="stylesheet" href="style.css?v=2.9">
+  <link rel="stylesheet" href="style.css?v=3.0">
 
   <!-- Leaflet Interactive Map Picker CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
@@ -29,7 +29,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" data-preload-chunks="slam"></script>
 
   <!-- 4. Application Logic -->
-  <script src="app.js?v=2.9"></script>
+  <script src="app.js?v=3.0"></script>
 </head>
 <body>
   <!-- Modern AR HUD Overlay -->
@@ -60,14 +60,19 @@
       <!-- Active Destination Card -->
       <div id="destination-card" class="destination-card">
         <div class="dest-main-row">
-          <div class="dest-pin-icon">📍</div>
+          <div class="dest-pin-icon" id="dest-card-icon">📍</div>
           <div class="dest-info">
             <div id="dest-title" class="dest-title">Via Aldo Moro, 52</div>
             <div id="dest-address" class="dest-address">Frattocchie, Marino (RM), Lazio, Italy</div>
           </div>
-          <button id="btn-open-gmaps" class="gmaps-link-btn" title="Open in Google Maps">
-            <span>🗺️ MAP</span>
-          </button>
+          <div class="dest-actions-col">
+            <button id="btn-quick-standpoint" class="dest-action-btn standpoint-btn" title="Toggle between Live GPS and Teleport to destination">
+              <span id="standpoint-btn-text">🏠 TELEPORT</span>
+            </button>
+            <button id="btn-open-gmaps" class="dest-action-btn gmaps-link-btn" title="Open Satellite & Street Map">
+              <span>🗺️ MAP</span>
+            </button>
+          </div>
         </div>
 
         <!-- Real-Time Geospatial Telemetry Pills -->
@@ -209,10 +214,13 @@
       <div class="map-modal-card">
         <div class="map-modal-header">
           <div class="map-title-col">
-            <span class="map-modal-title">🗺️ GOOGLE / OPEN MAP PICKER</span>
-            <span class="map-modal-subtitle">Tap anywhere on the map or drag the red pin</span>
+            <span class="map-modal-title">🗺️ SATELLITE & STREET MAP</span>
+            <span class="map-modal-subtitle">High-resolution target verification & aerial inspector</span>
           </div>
-          <button id="btn-close-map" class="map-close-btn">✕</button>
+          <div class="map-header-actions">
+            <button id="btn-modal-open-gmaps" class="map-external-link-btn" title="Open Google Maps in new tab">↗ GOOGLE MAPS</button>
+            <button id="btn-close-map" class="map-close-btn">✕</button>
+          </div>
         </div>
 
         <!-- Leaflet Map Container -->

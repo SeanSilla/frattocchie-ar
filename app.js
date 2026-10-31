@@ -379,9 +379,9 @@ AFRAME.registerComponent('red-map-pin', {
       side: THREE.DoubleSide,
       depthWrite: false,
     });
-    const beamMesh = new THREE.Mesh(beamGeo, beamMat);
-    beamMesh.position.set(0, 17.5, 0); // Extends from ground up 35m into the sky!
-    group.add(beamMesh);
+    this.beamMesh = new THREE.Mesh(beamGeo, beamMat);
+    this.beamMesh.position.set(0, 17.5, 0); // Extends from ground up 35m into the sky!
+    group.add(this.beamMesh);
 
     // ─────────────────────────────────────────────────────────────
     // 3. 3D FLOATING BILLBOARD BADGE (Address + Live Distance)
@@ -407,7 +407,22 @@ AFRAME.registerComponent('red-map-pin', {
     this.el.setObject3D('mesh', group);
   },
 
-  updateBadgeTexture(title, distanceText) {
+  setFarMode(isFarBeacon) {
+    if (this.groundGroup) {
+      this.groundGroup.visible = !isFarBeacon;
+    }
+    if (this.beamMesh && this.beamMesh.material) {
+      if (isFarBeacon) {
+        this.beamMesh.material.color.setHex(0x38bdf8);
+        this.beamMesh.material.opacity = 0.65;
+      } else {
+        this.beamMesh.material.color.setHex(0xee2c2c);
+        this.beamMesh.material.opacity = 0.35;
+      }
+    }
+  },
+
+  updateBadgeTexture(title, distanceText, isFarBeacon = false) {
     const ctx = this.badgeCtx;
     const w = this.badgeCanvas.width;
     const h = this.badgeCanvas.height;
@@ -416,8 +431,8 @@ AFRAME.registerComponent('red-map-pin', {
 
     // Rounded Frosted Glass Container
     const r = 24;
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
-    ctx.strokeStyle = '#ea4335';
+    ctx.fillStyle = isFarBeacon ? 'rgba(15, 23, 42, 0.96)' : 'rgba(15, 23, 42, 0.92)';
+    ctx.strokeStyle = isFarBeacon ? '#38bdf8' : '#ea4335';
     ctx.lineWidth = 6;
     ctx.beginPath();
     ctx.moveTo(r, 0);
@@ -433,19 +448,20 @@ AFRAME.registerComponent('red-map-pin', {
     ctx.fill();
     ctx.stroke();
 
-    // Red Pin Icon
+    // Icon
     ctx.font = '36px sans-serif';
-    ctx.fillText('📍', 24, 76);
+    ctx.fillText(isFarBeacon ? '🧭' : '📍', 24, 76);
 
     // Title Text
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 36px -apple-system, Roboto, sans-serif';
+    ctx.font = 'bold 32px -apple-system, Roboto, sans-serif';
     ctx.textAlign = 'left';
-    const cleanTitle = title.length > 20 ? title.substring(0, 20) + '...' : title;
+    const prefix = isFarBeacon ? 'TOWARDS: ' : '';
+    const cleanTitle = (prefix + title).length > 22 ? (prefix + title).substring(0, 22) + '...' : (prefix + title);
     ctx.fillText(cleanTitle, 72, 74);
 
     // Subtitle / Distance Pill
-    ctx.fillStyle = '#ff7666';
+    ctx.fillStyle = isFarBeacon ? '#38bdf8' : '#ff7666';
     ctx.font = 'bold 28px -apple-system, Roboto, monospace';
     ctx.fillText(distanceText, 72, 132);
 
@@ -498,8 +514,11 @@ AFRAME.registerComponent('map-pin-controller', {
     const btnSearchGo = document.getElementById('btn-search-go');
     const suggestionsDropdown = document.getElementById('suggestions-dropdown');
 
+    const destCardIcon = document.getElementById('dest-card-icon');
     const destTitle = document.getElementById('dest-title');
     const destAddress = document.getElementById('dest-address');
+    const btnQuickStandpoint = document.getElementById('btn-quick-standpoint');
+    const standpointBtnText = document.getElementById('standpoint-btn-text');
     const btnOpenGMaps = document.getElementById('btn-open-gmaps');
 
     const metricDist = document.getElementById('metric-dist');
@@ -554,6 +573,7 @@ AFRAME.registerComponent('map-pin-controller', {
     // Leaflet Map Modal
     const mapModal = document.getElementById('map-modal');
     const btnCloseMap = document.getElementById('btn-close-map');
+    const btnModalOpenGMaps = document.getElementById('btn-modal-open-gmaps');
     const mapPickedCoords = document.getElementById('map-picked-coords');
     const btnConfirmMapPin = document.getElementById('btn-confirm-map-pin');
 
@@ -598,11 +618,42 @@ AFRAME.registerComponent('map-pin-controller', {
 
       if (btnOpenGMaps) {
         btnOpenGMaps.onclick = () => {
-          window.open(
-            `https://www.google.com/maps/search/?api=1&query=${state.target.lat},${state.target.lon}`,
-            '_blank'
-          );
+          mapModal.classList.remove('hidden');
+          initLeafletMap();
+          if (leafletMap) {
+            leafletMap.setView([state.target.lat, state.target.lon], 17);
+            if (leafletPinMarker) {
+              leafletPinMarker.setLatLng([state.target.lat, state.target.lon]);
+            }
+            setTimeout(() => leafletMap.invalidateSize(), 200);
+          }
         };
+      }
+    };
+
+    // Update Standpoint UI Elements
+    const updateStandpointUI = () => {
+      const isSim = state.standpointMode === 'SIMULATED';
+      if (btnQuickStandpoint) {
+        btnQuickStandpoint.classList.toggle('active', isSim);
+        if (standpointBtnText) {
+          standpointBtnText.innerText = isSim ? '🌐 LIVE GPS' : '🏠 TELEPORT';
+        }
+        btnQuickStandpoint.title = isSim ? 'Return to real live GPS tracking' : 'Simulate standing directly at destination landmark';
+      }
+      if (btnModeSim) btnModeSim.classList.toggle('active', isSim);
+      if (btnModeLive) btnModeLive.classList.toggle('active', !isSim);
+      if (destCardIcon) {
+        destCardIcon.innerText = isSim ? '🏠' : (state.distanceMeters > 50 ? '🧭' : '📍');
+      }
+      if (latchPillText) {
+        if (isSim) {
+          latchPillText.innerText = '🏠 AT DESTINATION';
+        } else if (state.isLatched) {
+          latchPillText.innerText = '🔒 LATCHED TO GROUND';
+        } else {
+          latchPillText.innerText = '🛰️ GPS TRACKING';
+        }
       }
     };
 
@@ -631,11 +682,21 @@ AFRAME.registerComponent('map-pin-controller', {
       }
 
       updateCalibrationUI();
+      updateStandpointUI();
 
       // Update Floating Billboard Badge above the 3D Pin
+      const isFarBeacon = dist > 50.0 && state.standpointMode === 'LIVE';
       const pinComp = pinMeshEl ? pinMeshEl.components['red-map-pin'] : null;
-      if (pinComp && pinComp.updateBadgeTexture) {
-        pinComp.updateBadgeTexture(state.target.title, `${formatDistance(dist)} • ${Math.round(bearing)}° ${getCardinal(bearing)}`);
+      if (pinComp) {
+        if (pinComp.setFarMode) {
+          pinComp.setFarMode(isFarBeacon);
+        }
+        if (pinComp.updateBadgeTexture) {
+          const badgeDistStr = isFarBeacon
+            ? `${formatDistance(dist)} Ahead • ${Math.round(bearing)}° ${getCardinal(bearing)}`
+            : `${formatDistance(dist)} • ${Math.round(bearing)}° ${getCardinal(bearing)}`;
+          pinComp.updateBadgeTexture(state.target.title, badgeDistStr, isFarBeacon);
+        }
       }
 
       // Update Mini Radar Widget (True North card with Target Blip)
@@ -664,8 +725,13 @@ AFRAME.registerComponent('map-pin-controller', {
         dynamicScale *= Math.min(1.8, 1.0 + Math.log10(Math.max(10, dist) / 10.0) * 0.25);
       }
 
-      // Height: STRICTLY at ground / eye level (State pinElevation, never in the sky)
-      const targetY = state.pinElevation;
+      // Height:
+      // If nearby (<= 50m) or in SIMULATED mode: strictly on the ground (Y = state.pinElevation), touching pavement!
+      // If far away (> 50m, e.g. Colosseum 18 km away in LIVE GPS mode):
+      // Elevate into the air (Y = 1.35m + pinElevation) as a Floating Navigational Beacon!
+      // This makes it 100% obvious that it is an AR Horizon Waypoint pointing toward Rome,
+      // NOT a pin planted on your indoor carpet!
+      const targetY = isFarBeacon ? (1.35 + state.pinElevation) : state.pinElevation;
 
       const camObj = camera ? camera.object3D : null;
       const camPos = camObj ? camObj.position : new THREE.Vector3(0, 1.6, 0);
@@ -772,7 +838,16 @@ AFRAME.registerComponent('map-pin-controller', {
       state.isLatched = false;
       toggleGroundLatch(false);
       updateGeospatialTransform();
-      showToast('📍', `Target updated: ${state.target.title}`);
+
+      const dist = calculateDistanceMeters(state.userCoords.lat, state.userCoords.lon, lat, lon);
+      if (dist > 50 && state.standpointMode === 'LIVE') {
+        showToast(
+          '🧭',
+          `Found ${state.target.title} (${formatDistance(dist)} Ahead)! Horizon beacon points toward target. Tap [🏠 TELEPORT] to stand at landmark.`
+        );
+      } else {
+        showToast('📍', `Target updated: ${state.target.title}`);
+      }
 
       // Sync Leaflet map if initialized
       if (leafletMap && leafletPinMarker) {
@@ -1130,30 +1205,57 @@ AFRAME.registerComponent('map-pin-controller', {
       });
     }
 
-    // Standpoint Mode (Live vs Simulated at Destination)
-    btnModeLive.addEventListener('click', () => {
-      state.standpointMode = 'LIVE';
-      btnModeLive.classList.add('active');
-      btnModeSim.classList.remove('active');
-      showToast('🌐', 'Tracking real live GPS satellites & compass.');
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((pos) => {
-          state.userCoords.lat = pos.coords.latitude;
-          state.userCoords.lon = pos.coords.longitude;
-          updateGeospatialTransform();
-        });
-      }
-    });
+    // Standpoint Mode Controller (Live GPS vs Simulated Standpoint at Target)
+    const toggleStandpointMode = (newMode) => {
+      const targetMode = newMode || (state.standpointMode === 'LIVE' ? 'SIMULATED' : 'LIVE');
+      state.standpointMode = targetMode;
 
-    btnModeSim.addEventListener('click', () => {
-      state.standpointMode = 'SIMULATED';
-      btnModeSim.classList.add('active');
-      btnModeLive.classList.remove('active');
-      state.userCoords.lat = state.target.lat;
-      state.userCoords.lon = state.target.lon;
-      pinAtCameraFeet();
-      showToast('🏠', 'Simulating standing directly at destination address!');
-    });
+      if (state.standpointMode === 'SIMULATED') {
+        state.userCoords.lat = state.target.lat;
+        state.userCoords.lon = state.target.lon;
+        updateStandpointUI();
+        pinAtCameraFeet();
+        showToast('🏛️', `Teleported to ${state.target.title}! Simulating standing directly at landmark.`);
+      } else {
+        updateStandpointUI();
+        state.isLatched = false;
+        if (btnLatchGround) btnLatchGround.classList.remove('active');
+        if (latchIcon) latchIcon.innerText = '🔒';
+        if (latchLabel) latchLabel.innerText = 'LOCK SLAM';
+
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              state.userCoords.lat = pos.coords.latitude;
+              state.userCoords.lon = pos.coords.longitude;
+              state.userCoords.accuracy = Math.round(pos.coords.accuracy);
+              updateGeospatialTransform();
+              showToast('🛰️', `Live GPS: Pointing towards ${state.target.title} (${formatDistance(state.distanceMeters)} Ahead).`);
+            },
+            () => {
+              updateGeospatialTransform();
+              showToast('🛰️', `Returned to Live GPS tracking.`);
+            }
+          );
+        } else {
+          updateGeospatialTransform();
+          showToast('🛰️', `Returned to Live GPS tracking.`);
+        }
+      }
+      updateGeospatialTransform();
+    };
+
+    if (btnQuickStandpoint) {
+      btnQuickStandpoint.addEventListener('click', () => toggleStandpointMode());
+    }
+
+    if (btnModeLive) {
+      btnModeLive.addEventListener('click', () => toggleStandpointMode('LIVE'));
+    }
+
+    if (btnModeSim) {
+      btnModeSim.addEventListener('click', () => toggleStandpointMode('SIMULATED'));
+    }
 
     // Drop Pin at Live GPS
     btnGpsCurrent.addEventListener('click', () => {
@@ -1183,6 +1285,12 @@ AFRAME.registerComponent('map-pin-controller', {
     btnCloseMap.addEventListener('click', () => {
       mapModal.classList.add('hidden');
     });
+
+    if (btnModalOpenGMaps) {
+      btnModalOpenGMaps.addEventListener('click', () => {
+        window.open(`https://www.google.com/maps/search/?api=1&query=${state.target.lat},${state.target.lon}`, '_blank');
+      });
+    }
 
     btnConfirmMapPin.addEventListener('click', async () => {
       if (!leafletPinMarker) return;
@@ -1428,15 +1536,24 @@ AFRAME.registerComponent('map-pin-controller', {
 
           const diff = (pinHeading - camHeading + 540) % 360 - 180;
 
+          const isFar = state.distanceMeters > 50.0 && state.standpointMode === 'LIVE';
+          const targetName = state.target.title.length > 15 ? state.target.title.substring(0, 15) + '...' : state.target.title;
+
           if (Math.abs(diff) > 135) {
             this.guideArrow.innerText = '↻';
-            this.guideText.innerText = 'PIN IS BEHIND YOU';
+            this.guideText.innerText = isFar 
+              ? `BEACON BEHIND YOU (LOOK TOWARDS ${getCardinal(state.bearingDegrees)})`
+              : 'PIN IS BEHIND YOU';
           } else if (diff < 0) {
             this.guideArrow.innerText = '←';
-            this.guideText.innerText = `TURN LEFT ${Math.round(Math.abs(diff))}° TO PIN`;
+            this.guideText.innerText = isFar
+              ? `TURN LEFT ${Math.round(Math.abs(diff))}° TOWARDS ${targetName.toUpperCase()}`
+              : `TURN LEFT ${Math.round(Math.abs(diff))}° TO PIN`;
           } else {
             this.guideArrow.innerText = '→';
-            this.guideText.innerText = `TURN RIGHT ${Math.round(diff)}° TO PIN`;
+            this.guideText.innerText = isFar
+              ? `TURN RIGHT ${Math.round(diff)}° TOWARDS ${targetName.toUpperCase()}`
+              : `TURN RIGHT ${Math.round(diff)}° TO PIN`;
           }
         }
       }
