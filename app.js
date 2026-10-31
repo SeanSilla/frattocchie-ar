@@ -32,6 +32,8 @@ const state = {
   distanceMeters: 0,
   bearingDegrees: 0,
   posture: 'STRAIGHT (AR)',
+  slamNorthYaw: null,     // True North angle in 8th Wall SLAM world space (smoothed & rock-solid)
+  slamAnchorOrigin: null, // Fixed SLAM origin vector (X, Z) so beacon isn't tethered to camera
   targetWorldPos: { x: 0, y: 0, z: -4, scale: 1.0 },
 };
 
@@ -88,14 +90,18 @@ function computeOmniDirectionalHeading(alpha, beta, gamma) {
   return (heading + 360) % 360;
 }
 
-// Circular shortest-distance exponential smoothing with Deadband (Eliminates magnetometer micro-jitter)
+// Continuous smooth circular exponential filter (Zero stepped deadband twitching)
 function smoothHeading(current, target, customFactor) {
   let diff = (target - current + 540) % 360 - 180;
-  // Deadband: Ignore sensor micro-jitter (< 2.2°) when holding phone steady
-  if (Math.abs(diff) < 2.2) {
-    return current;
+  const absDiff = Math.abs(diff);
+  if (absDiff < 0.15) return current;
+
+  let factor = customFactor !== undefined ? customFactor : 0.08;
+  if (absDiff > 45) {
+    factor = 0.3; // Responsive on quick body rotation
+  } else if (absDiff < 3.0) {
+    factor = 0.025; // Heavy damping for sensor micro-jitter
   }
-  const factor = customFactor !== undefined ? customFactor : (Math.abs(diff) > 35 ? 0.35 : 0.09);
   return (current + diff * factor + 360) % 360;
 }
 
@@ -371,7 +377,7 @@ AFRAME.registerComponent('red-map-pin', {
     // ─────────────────────────────────────────────────────────────
     // 2b. VERTICAL SKY BEACON BEAM (Visible from afar in any direction)
     // ─────────────────────────────────────────────────────────────
-    const beamGeo = new THREE.CylinderGeometry(0.04, 0.22, 35, 16);
+    const beamGeo = new THREE.CylinderGeometry(0.06, 0.35, 60, 16);
     const beamMat = new THREE.MeshBasicMaterial({
       color: 0xee2c2c,
       transparent: true,
@@ -380,7 +386,7 @@ AFRAME.registerComponent('red-map-pin', {
       depthWrite: false,
     });
     this.beamMesh = new THREE.Mesh(beamGeo, beamMat);
-    this.beamMesh.position.set(0, 17.5, 0); // Extends from ground up 35m into the sky!
+    this.beamMesh.position.set(0, 30.0, 0); // Extends from ground up 60m into the sky!
     group.add(this.beamMesh);
 
     // ─────────────────────────────────────────────────────────────
@@ -403,6 +409,7 @@ AFRAME.registerComponent('red-map-pin', {
     this.badgeMesh.position.set(0, 2.35, 0);
     group.add(this.badgeMesh);
 
+    this.lastBadgeKey = '';
     this.updateBadgeTexture('Via Aldo Moro, 52', '14 m away');
     this.el.setObject3D('mesh', group);
   },
@@ -423,6 +430,10 @@ AFRAME.registerComponent('red-map-pin', {
   },
 
   updateBadgeTexture(title, distanceText, isFarBeacon = false) {
+    const badgeKey = `${title}|${distanceText}|${isFarBeacon}`;
+    if (this.lastBadgeKey === badgeKey) return;
+    this.lastBadgeKey = badgeKey;
+
     const ctx = this.badgeCtx;
     const w = this.badgeCanvas.width;
     const h = this.badgeCanvas.height;
@@ -710,33 +721,21 @@ AFRAME.registerComponent('map-pin-controller', {
       }
 
       // ─────────────────────────────────────────────────────────────
-      // Compute SLAM Target Anchor (Ground Horizon Projection)
+      // Compute SLAM Target Anchor (Rock-Solid SLAM World Fusion)
       // ─────────────────────────────────────────────────────────────
-      // Waypoint Horizon Distance:
-      // If nearby (< 7m), place at actual physical distance.
-      // If far away (> 7m, e.g. 50m, 5km, 500km), clamp to 5.8m Horizon Waypoint Beacon!
-      // This ensures far-away pins are ALWAYS within the visible SLAM tracking volume,
-      // completely clear, sharp, with fully readable billboard badges.
-      const renderDist = dist <= 7.0 ? Math.max(2.5, dist) : 5.8;
-
-      // Dynamic scale with distance: subtly scales larger when destination is far
-      let dynamicScale = state.pinScale;
-      if (dist > 7.0) {
-        dynamicScale *= Math.min(1.8, 1.0 + Math.log10(Math.max(10, dist) / 10.0) * 0.25);
-      }
-
-      // Height:
-      // If nearby (<= 50m) or in SIMULATED mode: strictly on the ground (Y = state.pinElevation), touching pavement!
-      // If far away (> 50m, e.g. Colosseum 18 km away in LIVE GPS mode):
-      // Elevate into the air (Y = 1.35m + pinElevation) as a Floating Navigational Beacon!
-      // This makes it 100% obvious that it is an AR Horizon Waypoint pointing toward Rome,
-      // NOT a pin planted on your indoor carpet!
-      const targetY = isFarBeacon ? (1.35 + state.pinElevation) : state.pinElevation;
-
       const camObj = camera ? camera.object3D : null;
       const camPos = camObj ? camObj.position : new THREE.Vector3(0, 1.6, 0);
 
-      // Get camera yaw in 8th Wall SLAM world space (clockwise from -Z forward)
+      // Initialize fixed SLAM anchor origin if not set
+      if (!state.slamAnchorOrigin) {
+        state.slamAnchorOrigin = { x: camPos.x, z: camPos.z };
+      }
+      // Re-anchor if user has walked more than 15 meters away
+      if (Math.hypot(camPos.x - state.slamAnchorOrigin.x, camPos.z - state.slamAnchorOrigin.z) > 15) {
+        state.slamAnchorOrigin = { x: camPos.x, z: camPos.z };
+      }
+
+      // 1. Get camera yaw in 8th Wall SLAM world space (clockwise from -Z forward)
       let slamCamYaw = 0;
       if (camObj) {
         const camDir = new THREE.Vector3();
@@ -744,23 +743,51 @@ AFRAME.registerComponent('map-pin-controller', {
         slamCamYaw = Math.atan2(camDir.x, -camDir.z) * (180 / Math.PI);
       }
 
-      // Signed relative bearing relative to camera view (-180° to +180°)
-      const signedRelBearing = ((bearing - effectiveHeading + 540) % 360) - 180;
+      // 2. Fused True North in 8th Wall SLAM coordinates:
+      // instantSlamNorth is where True North lies in 8th Wall SLAM world space.
+      // Because the physical room does not rotate, True North is a CONSTANT angle in the physical room!
+      const instantSlamNorth = ((slamCamYaw - effectiveHeading + 360) % 360);
+      if (state.slamNorthYaw === null) {
+        state.slamNorthYaw = instantSlamNorth;
+      } else {
+        const northDiff = ((instantSlamNorth - state.slamNorthYaw + 540) % 360) - 180;
+        // Heavy damping filter: ignores high-frequency magnetometer sensor noise (±2° at 100Hz)
+        // while tracking deliberate, sustained orientation changes.
+        const gain = Math.abs(northDiff) > 35 ? 0.25 : 0.025;
+        state.slamNorthYaw = ((state.slamNorthYaw + northDiff * gain + 360) % 360);
+      }
 
-      // Fixed World-Space Bearing in 8th Wall SLAM:
-      // SLAM Camera Yaw + Relative Bearing locks the target in physical Earth coordinates!
-      // When the user turns their phone, slamCamYaw and effectiveHeading cancel out,
-      // keeping the pin rigidly stationary in real physical space (North never turns with the user)!
-      const slamTargetAngle = ((slamCamYaw + signedRelBearing + 360) % 360);
+      // 3. Fixed SLAM Target Angle:
+      // Bearing to target projected into 8th Wall SLAM world space.
+      // Completely decoupled from high-frequency magnetometer noise!
+      const slamTargetAngle = ((state.slamNorthYaw + bearing + 360) % 360);
       const rad = (slamTargetAngle * Math.PI) / 180;
 
-      // Target world position anchored relative to camera in 8th Wall SLAM space
+      // 4. Distance & Elevation:
+      // If far away (> 50m, e.g. Colosseum 18 km) in LIVE GPS mode:
+      // Render at 24.0m horizon distance, elevated 2.4m in the air as a Navigational Sky Beacon!
+      // This places it far out on the horizon in the sky, NOT sitting inside the user's living room!
+      const renderDist = isFarBeacon ? 24.0 : (dist <= 7.0 ? Math.max(2.4, dist) : 5.8);
+      const targetY = isFarBeacon ? (2.4 + state.pinElevation) : state.pinElevation;
+
+      // Dynamic scale:
+      // At 24m distance, 4.2x scale ensures the billboard badge is perfectly readable and prominent
+      let dynamicScale = state.pinScale;
+      if (isFarBeacon) {
+        dynamicScale *= 4.2;
+      } else if (dist > 7.0) {
+        dynamicScale *= Math.min(1.8, 1.0 + Math.log10(Math.max(10, dist) / 10.0) * 0.25);
+      }
+
+      // 5. Target World Position in 8th Wall SLAM space:
+      // Anchored from state.slamAnchorOrigin (so it doesn't follow the camera like a leash)
+      const origin = state.slamAnchorOrigin;
       state.targetWorldPos = {
-        x: camPos.x + Math.sin(rad) * renderDist,
+        x: origin.x + Math.sin(rad) * renderDist,
         y: targetY,
-        z: camPos.z - Math.cos(rad) * renderDist,
+        z: origin.z - Math.cos(rad) * renderDist,
         scale: dynamicScale,
-        relativeBearing: (signedRelBearing + 360) % 360,
+        relativeBearing: ((bearing - effectiveHeading + 540) % 360) - 180,
       };
 
       if (ground) ground.setAttribute('position', `${camPos.x.toFixed(2)} 0 ${camPos.z.toFixed(2)}`);
@@ -814,6 +841,9 @@ AFRAME.registerComponent('map-pin-controller', {
       forward.y = 0;
       forward.normalize();
 
+      state.slamAnchorOrigin = { x: camObj.position.x, z: camObj.position.z };
+      state.slamNorthYaw = null;
+
       const targetPos = camObj.position.clone().add(forward.multiplyScalar(2.8));
       pinRig.setAttribute('position', `${targetPos.x.toFixed(2)} ${state.pinElevation} ${targetPos.z.toFixed(2)}`);
 
@@ -837,6 +867,13 @@ AFRAME.registerComponent('map-pin-controller', {
 
       state.isLatched = false;
       toggleGroundLatch(false);
+
+      const camObj = camera ? camera.object3D : null;
+      if (camObj) {
+        state.slamAnchorOrigin = { x: camObj.position.x, z: camObj.position.z };
+      }
+      state.slamNorthYaw = null;
+
       updateGeospatialTransform();
 
       const dist = calculateDistanceMeters(state.userCoords.lat, state.userCoords.lon, lat, lon);
@@ -1089,6 +1126,7 @@ AFRAME.registerComponent('map-pin-controller', {
       const val = parseInt(e.target.value);
       state.headingTrim = val;
       labelTrim.innerText = `${val > 0 ? '+' : ''}${val}°`;
+      state.slamNorthYaw = null;
       updateGeospatialTransform();
     });
 
@@ -1097,6 +1135,7 @@ AFRAME.registerComponent('map-pin-controller', {
         state.headingTrim = ((state.headingTrim - 45 + 180 + 360) % 360) - 180;
         sliderTrim.value = state.headingTrim;
         labelTrim.innerText = `${state.headingTrim > 0 ? '+' : ''}${state.headingTrim}°`;
+        state.slamNorthYaw = null;
         showToast('🧭', `North trimmed: ${state.headingTrim}°`);
         updateGeospatialTransform();
       });
@@ -1107,6 +1146,7 @@ AFRAME.registerComponent('map-pin-controller', {
         state.headingTrim = ((state.headingTrim + 45 + 180 + 360) % 360) - 180;
         sliderTrim.value = state.headingTrim;
         labelTrim.innerText = `${state.headingTrim > 0 ? '+' : ''}${state.headingTrim}°`;
+        state.slamNorthYaw = null;
         showToast('🧭', `North trimmed: ${state.headingTrim}°`);
         updateGeospatialTransform();
       });
@@ -1117,6 +1157,7 @@ AFRAME.registerComponent('map-pin-controller', {
         state.headingTrim = 0;
         sliderTrim.value = 0;
         labelTrim.innerText = '0°';
+        state.slamNorthYaw = null;
         showToast('🎯', 'North trim reset to 0°');
         updateGeospatialTransform();
       });
@@ -1130,6 +1171,7 @@ AFRAME.registerComponent('map-pin-controller', {
         state.headingTrim = Math.round(newTrim);
         sliderTrim.value = state.headingTrim;
         labelTrim.innerText = `${state.headingTrim > 0 ? '+' : ''}${state.headingTrim}°`;
+        state.slamNorthYaw = null;
         showToast('🧭', `Aligned! Current view calibrated to North (0°).`);
         updateGeospatialTransform();
       });
@@ -1222,6 +1264,12 @@ AFRAME.registerComponent('map-pin-controller', {
         if (btnLatchGround) btnLatchGround.classList.remove('active');
         if (latchIcon) latchIcon.innerText = '🔒';
         if (latchLabel) latchLabel.innerText = 'LOCK SLAM';
+
+        const camObj = camera ? camera.object3D : null;
+        if (camObj) {
+          state.slamAnchorOrigin = { x: camObj.position.x, z: camObj.position.z };
+        }
+        state.slamNorthYaw = null;
 
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
